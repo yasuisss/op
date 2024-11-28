@@ -46,18 +46,15 @@ git_sparse_clone main https://github.com/Lienol/openwrt-package luci-app-filebro
 git clone https://github.com/sbwml/packages_lang_golang -b 22.x feeds/packages/lang/golang
 
 # 科学上网插件
+# git clone --depth=1 -b main https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
 git clone --depth=1 https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
-git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall-packages package/openwrt-passwall
-git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall package/luci-app-passwall
+git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall-packages.git package/openwrt-passwall
+git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall.git package/luci-app-passwall
 # git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwall2
 
 # Themes
-sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
-git clone --depth=1 -b https://github.com/kiddin9/luci-theme-edge package/luci-theme-edge
-git clone -b master https://github.com/jerrykuku/luci-theme-argon.git luci-theme-argon
-git clone -b master https://github.com/jerrykuku/luci-theme-argon-config.git luci-app-argon-config
-git clone --depth=1 https://github.com/xiaoqingfengATGH/luci-theme-infinityfreedom package/luci-theme-infinityfreedom
-git_sparse_clone main https://github.com/haiibo/packages luci-theme-atmaterial luci-theme-opentomcat luci-theme-netgear
+git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
 
 # 更改 Argon 主题背景
 cp -f $GITHUB_WORKSPACE/images/bg1.jpg package/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg

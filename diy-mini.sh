@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 修改默认IP
-sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/luci2/bin/config_generate
 
 # 更改默认 Shell 为 zsh
 # sed -i 's/\/bin\/ash/\/usr\/bin\/zsh/g' package/base-files/files/etc/passwd
@@ -43,8 +43,8 @@ git clone https://github.com/sbwml/packages_lang_golang -b 22.x feeds/packages/l
 # 科学上网插件
 # git clone --depth=1 -b main https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
 git clone --depth=1 https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
-git clone --depth=1  -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/openwrt-passwall
-git clone --depth=1  -b main https://github.com/xiaorouji/openwrt-passwall.git package/luci-app-passwall
+git clone --depth=1 -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/openwrt-passwall
+git clone --depth=1 -b main https://github.com/xiaorouji/openwrt-passwall.git package/luci-app-passwall
 # git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwall2
 
 # Themes

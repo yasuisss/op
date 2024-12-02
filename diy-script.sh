@@ -46,24 +46,14 @@ git_sparse_clone main https://github.com/Lienol/openwrt-package luci-app-filebro
 git clone https://github.com/sbwml/packages_lang_golang -b 22.x feeds/packages/lang/golang
 
 # 科学上网插件
-# git clone --depth=1 -b main https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
 git clone --depth=1 https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
-git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall.git;main package/luci-app-passwall
-git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall-packages.git;main
-cp -rf openwrt-passwall-packages/chinadns-ng package/chinadns-ng
-cp -rf openwrt-passwall-packages/tcping package/tcping
-cp -rf openwrt-passwall-packages/trojan-go package/trojan-go
-cp -rf openwrt-passwall-packages/trojan-plus package/trojan-plus
-cp -rf openwrt-passwall-packages/ssocks package/ssocks
-cp -rf openwrt-passwall-packages/hysteria package/hysteria
-cp -rf openwrt-passwall-packages/dns2tcp package/dns2tcp
-cp -rf openwrt-passwall-packages/sing-box package/sing-box
-cp -rf openwrt-passwall-packages/xray-core package/xray-core
+git clone --depth=1 -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/openwrt-passwall
+git clone --depth=1 -b main https://github.com/xiaorouji/openwrt-passwall.git package/luci-app-passwall
 # git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwall2
 
 # Themes
-git clone --depth=1 https://github.com/sbwml/luci-theme-argon.git package/luci-theme-argon
-git clone --depth=1 https://github.com/sbwml/luci-app-argon-config.git package/luci-app-argon-config
+git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
 
 # 更改 Argon 主题背景
 cp -f $GITHUB_WORKSPACE/images/bg1.jpg package/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg

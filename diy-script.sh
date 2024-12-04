@@ -26,7 +26,6 @@ rm -rf feeds/luci/applications/luci-app-serverchan
 rm -rf feeds/package/helloworld
 rm -rf feeds/packages/lang/golang
 rm -rf feeds/packages/net/v2ray-geodata
-rm -rf staging_dir build_dir
 
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {

@@ -26,8 +26,6 @@ rm -rf feeds/luci/applications/luci-app-serverchan
 rm -rf feeds/package/helloworld
 rm -rf feeds/packages/lang/golang
 rm -rf feeds/packages/net/v2ray-geodata
-src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main
-src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main
 
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {

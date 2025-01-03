@@ -32,7 +32,6 @@ rm -rf feeds/packages/net/ddns-go
 rm -rf feeds/packages/net/xray-core
 rm -rf feeds/packages/net/sing-box
 
-
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {
   branch="$1" repourl="$2" && shift 2

@@ -53,6 +53,34 @@ jobs:
         sudo apt clean
         df -h
 
+    - name: Before freeing up disk space
+      run: |
+        echo "Before freeing up disk space"
+        echo "=============================================================================="
+        df -hT
+        echo "=============================================================================="
+
+    - name: "Optimize Disk Space"
+      uses: "hugoalh/disk-space-optimizer-ghaction@v0.8.1"
+      with:
+        operate_sudo: "True"
+        general_include: ".+"
+        general_exclude: |-
+          ^GCC$
+          ^G\+\+$
+          Clang
+          LLVM
+        docker_include: ".+"
+        docker_prune: "True"
+        docker_clean: "True"
+        apt_prune: "True"
+        apt_clean: "True"
+        homebrew_prune: "True"
+        homebrew_clean: "True"
+        npm_prune: "True"
+        npm_clean: "True"
+        os_swap: "True"
+
     - name: 最大化编译空间
       uses: easimon/maximize-build-space@master
       with:
@@ -66,6 +94,13 @@ jobs:
         remove-haskell: 'true'
         remove-codeql: 'true'
         remove-docker-images: 'true'
+
+    - name: Free up disk space complete
+      run: |
+        echo "Free up disk space complete"
+        echo "=============================================================================="
+        df -hT
+        echo "=============================================================================="
         
     - name: Check Server Performance
       run: |
@@ -255,7 +290,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
 
-   - name: 释放磁盘空间
+    - name: 释放磁盘空间
       uses: jlumbroso/free-disk-space@main
       with:
         tool-cache: true
@@ -293,7 +328,8 @@ jobs:
           sudo timedatectl set-timezone "${TZ}"
           sudo -E apt install clang
           sudo mkdir -p /workdir
-          
+          sudo chown $USER:$GROUPS /workdir
+
     - name: Download Armvirt Firmware
       id: download
       run: |
@@ -312,7 +348,7 @@ jobs:
         OPENWRT_ARMVIRT: openwrt/bin/targets/*/*/*rootfs.tar.gz
         PACKAGE_SOC: all
         WHOAMI: yasui
-        KERNEL_VERSION_NAME: 6.6.74
+        KERNEL_VERSION_NAME: 6.12.15
         KERNEL_AUTO_LATEST: true
         DISTRIB_REVISION: R${{ env.DATE1 }} by yasui
 

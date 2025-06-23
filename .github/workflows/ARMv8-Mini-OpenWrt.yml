@@ -345,10 +345,10 @@ jobs:
       if: steps.download.outputs.status == 'success'
       uses: unifreq/openwrt_packit@master
       env:
-        OPENWRT_ARMVIRT: https://github.com/yasuisss/op/releases/download/ROOTFS_MINI/openwrt-armsr-armv8-generic-rootfs.tar.gz
+        OPENWRT_ARMSR: https://github.com/yasuisss/op/releases/download/ARMv8_MINI/openwrt-armsr-armv8-generic-rootfs.tar.gz
         PACKAGE_SOC: all
         WHOAMI: yasui
-        KERNEL_VERSION_NAME: 6.12.33
+        KERNEL_VERSION_NAME: 6.6.94
         KERNEL_AUTO_LATEST: true
         DISTRIB_REVISION: R${{ env.DATE1 }} by yasui
 

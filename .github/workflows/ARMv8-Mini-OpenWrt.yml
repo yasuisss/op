@@ -251,7 +251,6 @@ jobs:
       uses: ncipollo/release-action@main
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       with:
-          tag: ${{ steps.codes.outputs.build_tag }}
           artifacts: $OPENWRT_PATH/output/*
           allowUpdates: true
           removeArtifacts: false

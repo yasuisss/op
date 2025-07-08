@@ -160,14 +160,6 @@ jobs:
         echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
         echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_OUTPUT
 
-        # Set output information
-        echo "build_tag=OpenWrt_${TAGS_NAME}_${{ inputs.openwrt_storage }}_$(date +"%Y.%m")" >> ${GITHUB_OUTPUT}
-        echo -e "REPO_URL: [ ${REPO_URL} ]\nREPO_BRANCH: [ ${REPO_BRANCH} ]\nTAGS_NAME: [ ${TAGS_NAME} ]"
-        df -hT ${PWD}
-        echo "REPO_URL=${REPO_URL}" >> ${GITHUB_OUTPUT}
-        echo "TAGS_NAME=${TAGS_NAME}" >> ${GITHUB_OUTPUT}
-        echo "status=success" >> ${GITHUB_OUTPUT}
-
     - name: Generate Variables
       id: variable
       run: |
@@ -253,6 +245,7 @@ jobs:
       with:
           artifacts: $OPENWRT_PATH/output/*
           allowUpdates: true
+          tag: ${{ env.FIRMWARE_TAG }}
           removeArtifacts: false
           replacesArtifacts: true
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -268,7 +261,7 @@ jobs:
           kernel_usage: stable
           builder_name: yasui
 
-    - name: Upload OpenWrt To Release
+    - name: Upload the packaged OpenWrt
       if: env.PACKAGED_STATUS == 'success' && env.OPENWRT_RELEASE == 'true'
       uses: ncipollo/release-action@main
       with:

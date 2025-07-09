@@ -8,6 +8,7 @@ on:
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
+  TAGS_NAME: lede
   CONFIG_FILE: configs/armv8-mini.config
   DIY_SCRIPT: diy-mini.sh
   CLASH_KERNEL: arm64
@@ -132,8 +133,8 @@ jobs:
     - name: Generate Variables
       id: variable
       run: |
-        cp $CONFIG_FILE openwrt/.config
-        cd openwrt/
+        cp $CONFIG_FILE $OPENWRT_PATH/.config
+        cd $OPENWRT_PATH
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
@@ -154,7 +155,7 @@ jobs:
 
     - name: Install Feeds
       run: |
-        cd openwrt/
+        cd $OPENWRT_PATH
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
@@ -164,14 +165,14 @@ jobs:
         [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} openwrt/.config
         chmod +x $GITHUB_WORKSPACE/scripts/*.sh
         chmod +x $DIY_SCRIPT
-        cd openwrt/
+        cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_SCRIPT
         $GITHUB_WORKSPACE/scripts/preset-clash-core.sh $CLASH_KERNEL
         $GITHUB_WORKSPACE/scripts/preset-terminal-tools.sh
 
     - name: Download Package
       run: |
-        cd openwrt/
+        cd $OPENWRT_PATH
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
@@ -180,7 +181,7 @@ jobs:
     - name: Compile Firmware
       id: compile
       run: |
-        cd openwrt/
+        cd $OPENWRT_PATH
         mkdir -p files/etc/uci-defaults
         cp $GITHUB_WORKSPACE/scripts/init-settings.sh files/etc/uci-defaults/99-init-settings
         echo -e "$(nproc) thread compile"
@@ -194,7 +195,7 @@ jobs:
       if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
       run: |
           # Clean up server space
-          cd openwrt/
+          cd $OPENWRT_PATH
           [[ -d "output" ]] || mkdir output
           cp -f bin/targets/*/*/*rootfs.tar.gz output/
           cp -f .config output/config
@@ -212,7 +213,7 @@ jobs:
       uses: ncipollo/release-action@main
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       with:
-          artifacts: openwrt/output/*
+          artifacts: $OPENWRT_PATH/output/*
           allowUpdates: true
           removeArtifacts: false
           replacesArtifacts: true
@@ -222,7 +223,7 @@ jobs:
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       uses: ophub/amlogic-s9xxx-openwrt@main
       with:
-          openwrt_path: openwrt/output/*rootfs.tar.gz
+          openwrt_path: $OPENWRT_PATH/output/*rootfs.tar.gz
           openwrt_board: all
           openwrt_kernel: 6.12.y
           auto_kernel: true

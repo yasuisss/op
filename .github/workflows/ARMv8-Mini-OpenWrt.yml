@@ -109,8 +109,8 @@ jobs:
     - name: Generate Variables
       id: variable
       run: |
-        cp $CONFIG_FILE $OPENWRT_PATH/.config
-        cd $OPENWRT_PATH
+        cp $CONFIG_FILE openwrt/.config
+        cd openwrt/
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
@@ -164,7 +164,6 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
         echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
         echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
-
 
     - name: Package armsr as openwrt
       uses: unifreq/openwrt_packit@master

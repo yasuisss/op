@@ -82,9 +82,7 @@ jobs:
           sudo timedatectl set-timezone "${TZ}"
           sudo -E apt install clang
           sudo mkdir -p /builder
-          sudo mount /dev/github/runner /builder
-          sudo chown -R runner.runner /builder
-          df -Th
+          sudo chown $USER:$GROUPS /builder
           
     - name: Clone Source Code
       id: codes

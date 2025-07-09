@@ -81,7 +81,6 @@ jobs:
           sudo rm -rf ~/{.cargo,.dotnet,.rustup}
           sudo timedatectl set-timezone "${TZ}"
           sudo -E apt install clang
-          sudo mkfs.xfs /dev/github/runner
           sudo mkdir -p /builder
           sudo mount /dev/github/runner /builder
           sudo chown -R runner.runner /builder

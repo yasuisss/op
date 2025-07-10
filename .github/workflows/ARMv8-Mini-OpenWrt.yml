@@ -2,6 +2,11 @@ name: ARMv8 Mini OpenWrt
 
 on:
   workflow_dispatch:
+     inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
   schedule:
     - cron: 0 20 * * *
 
@@ -11,27 +16,12 @@ env:
   TAGS_NAME: lede
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: configs/armv8-mini.config
-  DIY_SCRIPT: diy-mini.sh
-  CLASH_KERNEL: arm64
-  CACHE_TOOLCHAIN: true
-  UPLOAD_BIN_DIR: false
-  FIRMWARE_RELEASE: true
-  FIRMWARE_TAG: ROOTFS_MINI
-  OPENWRT_RELEASE: true
-  OPENWRT_TAG: ARMv8_MINI
+  DIY_SH: diy-mini.sh
   TZ: Asia/Shanghai
 
 jobs:
   Build:
-    runs-on: ubuntu-22.04
-
-    outputs:
-      COMMIT_AUTHOR: ${{ steps.clone.outputs.COMMIT_AUTHOR }}
-      COMMIT_DATE: ${{ steps.clone.outputs.COMMIT_DATE }}
-      COMMIT_MESSAGE: ${{ steps.clone.outputs.COMMIT_MESSAGE }}
-      COMMIT_HASH: ${{ steps.clone.outputs.COMMIT_HASH }}
-      DEVICE_TARGET: ${{ steps.variable.outputs.DEVICE_TARGET }}
-      DEVICE_SUBTARGET: ${{ steps.variable.outputs.DEVICE_SUBTARGET }}
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout
@@ -47,103 +37,44 @@ jobs:
         large-packages: true
         docker-images: true
         swap-storage: true
-                
-    - name: Check Server Performance
-      run: |
-        echo "警告⚠"
-        echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
-        echo -e "已知CPU型号(降序): 7763，8370C，8272CL，8171M，E5-2673\n"
-        echo "--------------------------CPU信息--------------------------"
-        echo "CPU物理数量: $(cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l)"
-        echo "CPU核心数量: $(nproc)"
-        echo -e "CPU型号信息:$(cat /proc/cpuinfo | grep -m1 name | awk -F: '{print $2}')\n"
-        echo "--------------------------内存信息--------------------------"
-        echo "已安装内存详细信息:"
-        echo -e "$(sudo lshw -short -C memory | grep GiB)\n"
-        echo "--------------------------硬盘信息--------------------------"
-        echo "硬盘数量: $(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
 
     - name: Initialization Environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-          [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android 2>/dev/null
-          sudo swapoff -a
-          sudo rm -f /swapfile /mnt/swapfile
-          sudo -E apt-get -y update
-          sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
-          sudo -E apt-get -y install $(curl -fsSL https://tinyurl.com/ubuntu2204-make-openwrt)
-          sudo -E systemctl daemon-reload
-          #sudo -E apt-get -y full-upgrade
-          sudo -E apt-get -y autoremove --purge
-          sudo -E apt-get clean
-          sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
-          sudo rm -rf ~/{.cargo,.dotnet,.rustup}
-          sudo timedatectl set-timezone "${TZ}"
-          sudo -E apt install clang
-          sudo mkdir -p /workdir
-          sudo chown $USER:$GROUPS /workdir   
- 
+        sudo -E apt-get -qq update -y
+        sudo -E apt-get -qq install -y $(curl -fsSL https://raw.githubusercontent.com/nantayo/My-Pkg/master/2410)
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TZ"
+        sudo -E apt install clang
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
+
     - name: Clone Source Code
-      id: codes
       working-directory: /workdir
       run: |
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
-        cd openwrt
-        echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
-        COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
-        echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
-        COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
-        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
-        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
-        COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
-        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
-        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
-        COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
-        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
-        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_OUTPUT
+        git clone $REPO_URL -b $REPO_BRANCH --single-branch --depth=1 openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-
-    - name: Generate Variables
-      id: variable
-      run: |
-        cp $CONFIG_FILE openwrt/.config
-        cd openwrt/
-        make defconfig > /dev/null 2>&1
-        SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
-        echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
-        DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
-        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
-        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
-        DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
-        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
-        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
-
-    - name: Cache Toolchain
-      if: env.CACHE_TOOLCHAIN == 'true'
-      uses: HiGarfield/cachewrtbuild@main
-      with:
-        ccache: false
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-        prefix: ${{ env.OPENWRT_PATH }}
 
     - name: Install Feeds
       run: |
-        chmod +x $DIY_SCRIPT
+        chmod +x $DIY_SH
         cd openwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        $GITHUB_WORKSPACE/$DIY_SCRIPT
+        $GITHUB_WORKSPACE/$DIY_SH
         ./scripts/feeds update -a
-        ./scripts/feeds install -a        
+        ./scripts/feeds install -a
 
     - name: Load Custom Configuration
       run: |
-        [ -e files ] && mv files $OPENWRT_PATH/files
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRT_PATH/.config
-        chmod +x $GITHUB_WORKSPACE/scripts/*.sh
+        [ -e $FILES ] && mv $FILES openwrt/files
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+
+    - name: SSH connect to Actions
+      uses: P3TERX/ssh2actions@main
+      if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
 
     - name: Download Package
       working-directory: ./openwrt
@@ -158,13 +89,8 @@ jobs:
       run: |
         chmod -R 755 openwrt
         cd openwrt
-        mkdir -p files/etc/uci-defaults
-        cp $GITHUB_WORKSPACE/scripts/init-settings.sh files/etc/uci-defaults/99-init-settings
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 || make -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
-        echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
-        echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
 
     - name: Package armsr as openwrt
       uses: unifreq/openwrt_packit@master
@@ -176,8 +102,7 @@ jobs:
         WHOAMI: yasui
 
     - name: Upload the packaged OpenWrt
-      if: env.PACKAGED_STATUS == 'success' && env.OPENWRT_RELEASE == 'true'
-      uses: ncipollo/release-action@main
+      uses: softprops/action-gh-release@master
       with:
         name: R${{ env.DATE }} for ${{ env.OPENWRT_TAG }}
         allowUpdates: true

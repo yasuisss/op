@@ -15,8 +15,9 @@ env:
   REPO_BRANCH: master
   TAGS_NAME: lede
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: configs/armv8-mini.config
-  DIY_SH: diy-mini.sh
+  CONFIG_FILE: ARMv8/armv8-mini.config
+  DIY_SH: ARMv8/diy-mini.sh
+  FILES: ARMv8/files
   TZ: Asia/Shanghai
 
 jobs:

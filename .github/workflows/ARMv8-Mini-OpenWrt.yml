@@ -14,7 +14,6 @@ env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
   TAGS_NAME: lede
-  FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: ARMv8/armv8-mini.config
   DIY_SH: ARMv8/diy-mini.sh
   FILES: ARMv8/files
@@ -38,7 +37,28 @@ jobs:
         large-packages: true
         docker-images: true
         swap-storage: true
-
+  
+    - name: free disk space
+      run: |
+        sudo swapoff -a
+        sudo rm -f /swapfile
+        sudo apt clean
+        df -h
+   
+    - name: 最大化编译空间
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 4096
+        swap-size-mb: 1024
+        temp-reserve-mb: 200
+        build-mount-path: /workdir
+        overprovision-lvm: 'true'
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+        remove-docker-images: 'true'
+        
     - name: Initialization Environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -99,7 +119,7 @@ jobs:
         OPENWRT_ARMVIRT: openwrt/bin/targets/*/*/*.tar.gz
         KERNEL_REPO_URL: breakingbadboy/OpenWrt
         KERNEL_VERSION_NAME: 6.12.y
-        PACKAGE_SOC: all
+        PACKAGE_SOC: e52c
         WHOAMI: yasui
 
     - name: Upload the packaged OpenWrt

@@ -125,11 +125,10 @@ jobs:
     - name: Upload the packaged OpenWrt
       uses: softprops/action-gh-release@master
       with:
-        name: R${{ env.DATE }} for ${{ env.OPENWRT_TAG }}
+        tag_name: OpenWrt_${{ env.PACKAGED_OUTPUTDATE }}
         allowUpdates: true
         removeArtifacts: false
         replacesArtifacts: true
-        tag: ${{ env.OPENWRT_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
         body: |

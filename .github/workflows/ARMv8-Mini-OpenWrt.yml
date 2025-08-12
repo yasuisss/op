@@ -330,7 +330,6 @@ jobs:
 
     - name: Package OpenWrt Firmware
       uses: ophub/amlogic-s9xxx-openwrt@main
-      if: ${{ steps.download.outputs.status }} == 'success' && !cancelled()
       env:
         openwrt_path: https://github.com/yasuisss/op/releases/download/ROOTFS_MINI/openwrt-armsr-armv8-generic-rootfs.tar.gz
         openwrt_board: all

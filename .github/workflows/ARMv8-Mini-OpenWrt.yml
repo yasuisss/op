@@ -329,7 +329,7 @@ jobs:
         echo "DATE1=$(date +"%y.%m.%d")" >> $GITHUB_ENV
 
     - name: Package OpenWrt Firmware
-      uses: unifreq/openwrt_packit@master
+      uses: ophub/amlogic-s9xxx-openwrt@main
       if: ${{ steps.download.outputs.status }} == 'success' && !cancelled()
       env:
         OPENWRT_ARMSR: https://github.com/yasuisss/op/releases/download/ROOTFS_MINI/openwrt-armsr-armv8-generic-rootfs.tar.gz

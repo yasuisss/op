@@ -3,7 +3,7 @@ name: Rockchip OpenWrt
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 16 * * *
+    - cron: 0 18 * * *
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
@@ -120,7 +120,6 @@ jobs:
         chmod +x $DIY_SCRIPT
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_SCRIPT
-        $GITHUB_WORKSPACE/scripts/preset-clash-core.sh $CLASH_KERNEL
         $GITHUB_WORKSPACE/scripts/preset-terminal-tools.sh
         $GITHUB_WORKSPACE/scripts/preset-adguard-core.sh $CLASH_KERNEL
 
@@ -186,7 +185,7 @@ jobs:
         body: |
           **This is OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
           ### 📒 固件信息
-          - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }} (rk33xx, rk35xx)
+          - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }} (rk35xx)
           - ⚽ 固件源码: ${{ env.REPO_URL }}
           - 💝 源码分支: ${{ env.REPO_BRANCH }}
           - 🚀 内核版本: ${{ env.KERNEL }}

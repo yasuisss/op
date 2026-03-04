@@ -300,6 +300,7 @@ jobs:
       if: ${{ steps.download.outputs.status  == 'success' && !cancelled()}}
       env:
         OPENWRT_ARMSR: https://github.com/yasuisss/op/releases/download/ROOTFS_MINI/openwrt-armsr-armv8-generic-rootfs.tar.gz
+        KERNEL_REPO_URL: ophub/kernel
         PACKAGE_SOC: all
         WHOAMI: yasui
         KERNEL_VERSION_NAME: 6.18.y

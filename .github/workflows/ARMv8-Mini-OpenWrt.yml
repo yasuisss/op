@@ -299,7 +299,7 @@ jobs:
       uses: unifreq/openwrt_packit@master
       if: ${{ steps.download.outputs.status  == 'success' && !cancelled()}}
       env:
-        OPENWRT_ARMSR: https://github.com/yasuisss/op/releases/download/Rockchip/openwrt-rockchip-armv8-rootfs.tar.gz
+        OPENWRT_ARMSR: https://github.com/yasuisss/op/releases/download/ROOTFS_MINI/openwrt-x86-64-generic-squashfs-rootfs.img.gz
         KERNEL_REPO_URL: ophub/kernel
         PACKAGE_SOC: all
         WHOAMI: yasui

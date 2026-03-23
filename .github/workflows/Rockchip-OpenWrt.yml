@@ -24,8 +24,8 @@ jobs:
       fail-fast: false 
       matrix:
         include:
-          - device: "R68S"
-            config: "configs/r68s.config"
+          - device: "H66K"
+            config: "configs/h66k.config"
           - device: "E52C"
             config: "configs/e52c.config"
 

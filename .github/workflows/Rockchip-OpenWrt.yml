@@ -8,7 +8,6 @@ on:
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
-  CONFIG_FILE: configs/rockchip.config
   EXTRA_CONFIG: configs/extra.config
   DIY_SCRIPT: diy-script.sh
   CLASH_KERNEL: arm64
@@ -21,6 +20,14 @@ env:
 jobs:
   Build:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false 
+      matrix:
+        include:
+          - device: "R68S"
+            config: "configs/r68s.config"
+          - device: "E52C"
+            config: "configs/e52c.config"
 
     steps:
     - name: Check Server Performance
@@ -88,7 +95,7 @@ jobs:
 
     - name: Generate Variables
       run: |
-        cp $CONFIG_FILE $OPENWRT_PATH/.config
+        cp ${{ matrix.config }} $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
@@ -103,7 +110,7 @@ jobs:
       uses: HiGarfield/cachewrtbuild@main
       with:
         ccache: false
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ matrix.device }}
         prefix: ${{ env.OPENWRT_PATH }}
 
     - name: Install Feeds
@@ -115,7 +122,7 @@ jobs:
     - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRT_PATH/.config
+        cp ${{ matrix.config }} $OPENWRT_PATH/.config
         cat $EXTRA_CONFIG >> $OPENWRT_PATH/.config
         chmod +x $GITHUB_WORKSPACE/scripts/*.sh
         chmod +x $DIY_SCRIPT
@@ -178,9 +185,9 @@ jobs:
       if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
       uses: ncipollo/release-action@v1
       with:
-        name: R${{ env.DATE }} for ${{ env.FIRMWARE_TAG }}
+        name: R${{ env.DATE }} for ${{ matrix.device }}
         allowUpdates: true
-        tag: ${{ env.FIRMWARE_TAG }}
+        tag: ${{ matrix.device }}
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: ${{ env.FIRMWARE_PATH }}/*
         body: |

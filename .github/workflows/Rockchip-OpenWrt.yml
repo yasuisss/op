@@ -135,6 +135,11 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
+    - name: Check Error Line
+      run: |
+        echo "Checking line 524 of .config:"
+        sed -n '524p' openwrt/.config
+
     - name: Compile Firmware
       id: compile
       run: |

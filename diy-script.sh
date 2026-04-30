@@ -53,8 +53,8 @@ git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/l
 # git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/pswcore
 git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
 git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
-git clone https://github.com/sbwml/openwrt_helloworld package/helloworld
-# git clone --depth=1 https://github.com/fw876/helloworld.git package/helloworld
+# git clone https://github.com/sbwml/openwrt_helloworld package/helloworld
+git clone --depth=1 https://github.com/fw876/helloworld.git package/helloworld
 # git clone --depth=1 https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
 # git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwall2
 

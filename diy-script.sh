@@ -154,7 +154,7 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 # sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/controller/*.lua
 # sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/model/cbi/v2ray_server/*.lua
 # sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/view/v2ray_server/*.htm
-sed -i 's/CONFIG_PACKAGE_kmod-crypto-lib-chacha20poly1305=y/# CONFIG_PACKAGE_kmod-crypto-lib-chacha20poly1305 is not set/' .config
+# sed -i 's/kmod-crypto-chacha20poly1305//g' .config
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a

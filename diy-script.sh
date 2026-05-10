@@ -61,6 +61,7 @@ git clone https://github.com/sbwml/openwrt_helloworld package/helloworld
 # Themes
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
+sed -i 's/+wget/+wget-any/g' package/lean/luci-theme-argon/Makefile
 # git clone --depth=1 https://github.com/sbwml/luci-theme-argon.git package/luci-theme-argon
 # git clone --depth=1 https://github.com/sbwml/luci-app-argon-config.git package/luci-app-argon-config
 
@@ -154,7 +155,6 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 # sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/controller/*.lua
 # sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/model/cbi/v2ray_server/*.lua
 # sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/view/v2ray_server/*.htm
-sed -i 's/+wget-any//g' package/lean/luci-theme-argon/Makefile
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a

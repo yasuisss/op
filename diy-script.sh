@@ -157,7 +157,18 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 # 测试开启bbr3
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
 
+# 强制让内核编译产生 crc-itu-t.ko 和 cifs_arc4.ko 模块
+sed -i 's/CONFIG_CRC_ITU_T=y/CONFIG_CRC_ITU_T=m/g' target/linux/generic/config-6.18 2>/dev/null || true
+sed -i 's/CONFIG_CRYPTO_ARC4=y/CONFIG_CRYPTO_ARC4=m/g' target/linux/generic/config-6.18 2>/dev/null || true
+
+# 如果不存在该配置，则直接追加
+if ! grep -q "CONFIG_CRC_ITU_T=" target/linux/generic/config-6.18; then
+    echo "CONFIG_CRC_ITU_T=m" >> target/linux/generic/config-6.18
+fi
+if ! grep -q "CONFIG_CRYPTO_ARC4=" target/linux/generic/config-6.18; then
+    echo "CONFIG_CRYPTO_ARC4=m" >> target/linux/generic/config-6.18
+fi
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a
-./scripts/feeds update luci
-./scripts/feeds install -a -p luci
+

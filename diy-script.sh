@@ -168,6 +168,10 @@ fi
 if ! grep -q "CONFIG_CRYPTO_ARC4=" target/linux/generic/config-6.18; then
     echo "CONFIG_CRYPTO_ARC4=m" >> target/linux/generic/config-6.18
 fi
+sed -i '/kmod-lib-crc-itu-t/d' package/kernel/linux/modules/lib.mk
+sed -i '/crc-itu-t.ko/d' package/kernel/linux/modules/lib.mk
+sed -i '/kmod-fs-smbfs-common/d' package/kernel/linux/modules/fs.mk
+sed -i '/cifs_arc4.ko/d' package/kernel/linux/modules/fs.mk
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a

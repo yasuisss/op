@@ -122,6 +122,9 @@ jobs:
         $GITHUB_WORKSPACE/scripts/preset-clash-core.sh $CLASH_KERNEL
         $GITHUB_WORKSPACE/scripts/preset-terminal-tools.sh
         $GITHUB_WORKSPACE/scripts/preset-adguard-core.sh $CLASH_KERNEL
+        echo "CONFIG_CRYPTO_ARC4=m" >> target/linux/generic/config-6.18
+        echo "CONFIG_CRC_ITU_T=m" >> target/linux/generic/config-6.18
+        echo "CONFIG_CRC_ITU_T=m" >> target/linux/x86/config-6.18 2>/dev/null || true
 
     - name: Download DL Package
       run: |

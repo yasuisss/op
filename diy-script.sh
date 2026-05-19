@@ -172,6 +172,14 @@ sed -i '/kmod-lib-crc-itu-t/d' package/kernel/linux/modules/lib.mk
 sed -i '/crc-itu-t.ko/d' package/kernel/linux/modules/lib.mk
 sed -i '/kmod-fs-smbfs-common/d' package/kernel/linux/modules/fs.mk
 sed -i '/cifs_arc4.ko/d' package/kernel/linux/modules/fs.mk
+# 移除旧版损坏的 xtables-addons
+rm -rf feeds/packages/net/xtables-addons
+rm -rf package/feeds/packages/xtables-addons
+
+# 从官方或较新的维护源克隆最新的 xtables-addons 源码
+git clone https://github.com/openwrt/packages.git /tmp/owrt-pkgs
+mv /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/xtables-addons
+rm -rf /tmp/owrt-pkgs
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a

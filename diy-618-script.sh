@@ -197,7 +197,6 @@ git clone https://github.com/openwrt/packages.git /tmp/owrt-pkgs
 mv /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/xtables-addons
 rm -rf /tmp/owrt-pkgs
 
-sed -i 's/DEPENDS:=@PCI_SUPPORT.*/& +kmod-mdio/' package/kernel/linux/modules/netdevices.mk
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a

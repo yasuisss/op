@@ -59,7 +59,8 @@ git clone https://github.com/sbwml/openwrt_helloworld package/helloworld
 # git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwall2
 
 # 大鹅
-git clone https://github.com/QiuSimons/luci-app-daed package/dae
+# git clone https://github.com/QiuSimons/luci-app-daed package/dae
+git clone https://github.com/QiuSimons/luci-app-daed package/luci-app-daed
 
 # Themes
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon

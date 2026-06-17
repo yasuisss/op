@@ -60,7 +60,8 @@ git clone https://github.com/sbwml/openwrt_helloworld package/helloworld
 
 # 大鹅
 # git clone https://github.com/QiuSimons/luci-app-daed package/dae
-git clone https://github.com/QiuSimons/luci-app-daed package/luci-app-daed
+# git clone https://github.com/QiuSimons/luci-app-daed package/luci-app-daed
+git clone https://github.com/QiuSimons/luci-app-daed package/dae
 
 # Themes
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon

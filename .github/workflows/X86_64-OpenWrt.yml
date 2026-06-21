@@ -42,23 +42,22 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-          # docker rmi $(docker images -q)
           [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
           sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
           sudo swapoff -a
           sudo rm -f /swapfile /mnt/swapfile
           sudo -E apt-get -y update
-          sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
+          # 注意：去掉了把 llvm* 整个干掉的命令，避免 eBPF 缺少关键工具链
+          sudo -E apt-get -y purge azure-cli ghc* zulu* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
           sudo -E apt-get -y install $(curl -fsSL https://ophub.org/ubuntu2404-make-openwrt-depends)
           sudo -E systemctl daemon-reload
-          #sudo -E apt-get -y full-upgrade
           sudo -E apt-get -y autoremove --purge
           sudo -E apt-get clean
           sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
           sudo rm -rf ~/{.cargo,.dotnet,.rustup}
           sudo timedatectl set-timezone "${TZ}"
-          #sudo -E apt install scdoc
-          sudo -E apt-get install -y dwarves npm
+          # 确保安装了 dwarves(pahole) 以及 BPF 所需的 clang/llvm 环境
+          sudo -E apt-get install -y dwarves npm clang llvm
           sudo -E npm install -g pnpm
 
     - name: Combine Disks
@@ -124,13 +123,37 @@ jobs:
         $GITHUB_WORKSPACE/scripts/preset-clash-core.sh $CLASH_KERNEL
         $GITHUB_WORKSPACE/scripts/preset-terminal-tools.sh
         $GITHUB_WORKSPACE/scripts/preset-adguard-core.sh $CLASH_KERNEL
-        echo "CONFIG_CRYPTO_ARC4=m" >> target/linux/generic/config-6.18
-        echo "CONFIG_CRC_ITU_T=m" >> target/linux/generic/config-6.18
-        echo "CONFIG_CRC_ITU_T=m" >> target/linux/x86/config-6.18 2>/dev/null || true
+        
+        # 优化：动态查找所有内核配置文件，强制注入 BTF 与指定内核开关，防止硬编码 6.18 失效
+        for conf in target/linux/generic/config-* target/linux/x86/config-*; do
+          if [ -f "$conf" ]; then
+            echo "CONFIG_DEBUG_INFO=y" >> $conf
+            echo "CONFIG_DEBUG_INFO_BTF=y" >> $conf
+            echo "CONFIG_BPF_SYSCALL=y" >> $conf
+            echo "CONFIG_BPF_JIT=y" >> $conf
+            echo "CONFIG_CRYPTO_ARC4=m" >> $conf
+            echo "CONFIG_CRC_ITU_T=m" >> $conf
+            sed -i '/CONFIG_DEBUG_INFO_REDUCED/d' $conf
+          fi
+        done
 
     - name: Download DL Package
       run: |
         cd $OPENWRT_PATH
+        # 优化：在最终的确定性 defconfig 之后，重新强行把外层全局 BTF 变量补进 .config，防止被冲刷
+        make defconfig
+        echo "CONFIG_DEVEL=y" >> .config
+        echo "CONFIG_KERNEL_DEBUG_INFO=y" >> .config
+        echo "CONFIG_KERNEL_DEBUG_INFO_REDUCED=n" >> .config
+        echo "CONFIG_KERNEL_DEBUG_INFO_BTF=y" >> .config
+        echo "CONFIG_KERNEL_CGROUPS=y" >> .config
+        echo "CONFIG_KERNEL_CGROUP_BPF=y" >> .config
+        echo "CONFIG_KERNEL_BPF_EVENTS=y" >> .config
+        echo "CONFIG_BPF_TOOLCHAIN_HOST=y" >> .config
+        echo "CONFIG_KERNEL_XDP_SOCKETS=y" >> .config
+        echo "CONFIG_PACKAGE_kmod-xdp-sockets-diag=y" >> .config
+        
+        # 再次执行快速检查
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
@@ -143,6 +166,7 @@ jobs:
         mkdir -p files/etc/uci-defaults
         cp $GITHUB_WORKSPACE/scripts/init-settings.sh files/etc/uci-defaults/99-init-settings
         echo -e "$(nproc) thread compile"
+        # 保持你优秀的多线程降级单线程报错输出逻辑
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV

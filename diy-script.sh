@@ -162,3 +162,4 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a
+echo "CONFIG_NET_DSA_REALTEK_RTL8365MB=n" >> .config

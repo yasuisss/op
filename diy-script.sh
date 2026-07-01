@@ -163,7 +163,17 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# 强行在 rockchip 的内核通用补丁里加入修复头文件的代码
-# 进入 rockchip 目录，强制把通用配置和 6.12 内核配置中的该驱动设为不编译
-find target/linux/rockchip/ -name "config-*" | xargs sed -i 's/CONFIG_NET_DSA_REALTEK_RTL8365MB=y/CONFIG_NET_DSA_REALTEK_RTL8365MB=n/g'
-find target/linux/rockchip/ -name "config-*" | xargs -I {} sh -c 'echo "CONFIG_NET_DSA_REALTEK_RTL8365MB=n" >> {}'
+# 在编译前强制把需要的头文件注入到该文件的最前方，彻底解决未定义错误
+sed -i '1s/^/#include <linux\/bitfield.h>\n/' target/linux/rockchip/files/drivers/net/dsa/realtek/rtl8365mb_vlan.c 2>/dev/null || true
+
+# 如果上游源码是将驱动放在补丁中解压，直接用底层全局钩子对解压后的源码强制注入
+cat << 'EOF' >> target/linux/rockchip/Makefile
+
+# 注入自定义挂钩：在内核源码准备就绪后、编译之前，强行在目标源码第一行插入头文件
+define Kernel/Prepare/FixHeader
+	if [ -f $(LINUX_DIR)/drivers/net/dsa/realtek/rtl8365mb_vlan.c ]; then \
+		sed -i '1s/^/#include <linux\/bitfield.h>\n/' $(LINUX_DIR)/drivers/net/dsa/realtek/rtl8365mb_vlan.c; \
+	fi
+endef
+Hooks/Engine/Build += Kernel/Prepare/FixHeader
+EOF

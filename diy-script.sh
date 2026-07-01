@@ -164,4 +164,6 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc
 ./scripts/feeds install -a
 
 # 强行在 rockchip 的内核通用补丁里加入修复头文件的代码
-echo -e "\n--- a/drivers/net/dsa/realtek/rtl8365mb_vlan.c\n+++ b/drivers/net/dsa/realtek/rtl8365mb_vlan.c\n@@ -11,2 +11,3 @@\n */\n+#include <linux/bitfield.h>\n #include <linux/etherdevice.h>" > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-header.patch
+# 进入 rockchip 目录，强制把通用配置和 6.12 内核配置中的该驱动设为不编译
+find target/linux/rockchip/ -name "config-*" | xargs sed -i 's/CONFIG_NET_DSA_REALTEK_RTL8365MB=y/CONFIG_NET_DSA_REALTEK_RTL8365MB=n/g'
+find target/linux/rockchip/ -name "config-*" | xargs -I {} sh -c 'echo "CONFIG_NET_DSA_REALTEK_RTL8365MB=n" >> {}'

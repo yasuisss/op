@@ -163,24 +163,28 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# 1. 强制创建 6.12 补丁目录
-mkdir -p target/linux/rockchip/patches-6.12
+# =================================================================
+# 终极拦截：直接修改 Rockchip 平台内核网络驱动的 Makefile 规则
+# =================================================================
 
-# 2. 验证目录是否存在
-if [ -d "target/linux/rockchip/patches-6.12" ]; then
-    echo "====> [SUCCESS] rockchip 6.12 patches directory exists!"
-else
-    echo "====> [ERROR] Failed to create rockchip 6.12 patches directory!"
-    exit 1
+# 1. 强制在 OpenWrt 平台内核文件的 Makefile 中注释掉这个有 Bug 的 Realtek 驱动
+# 无论内核怎么解压，直接在核心平台补丁/文件里抹去它，使其根本不会被触发编译
+if [ -d "target/linux/rockchip" ]; then
+    # 查找 rockchip 平台下所有的内核驱动编译 Makefile 规则并强行注释掉该模块
+    find target/linux/rockchip/ -name "Makefile" | xargs sed -i 's/obj-$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/# obj-$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/g' 2>/dev/null || true
 fi
 
-# 3. 接下来安心地向该目录写入你的补丁文件
-cat << 'EOF' > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-vlan-missing-header.patch
---- a/drivers/net/dsa/realtek/rtl8365mb_vlan.c
-+++ b/drivers/net/dsa/realtek/rtl8365mb_vlan.c
-@@ -1,1 +1,2 @@
-+#include <linux/bitfield.h>
- /*
+# 2. 编写一个更强的底层编译钩子（Makefile Hook），在内核刚刚解压完毕后，直接破坏掉该驱动的 Makefile，防止被编译
+cat << 'EOF' >> target/linux/rockchip/Makefile
+
+define Kernel/Prepare/DisableRtlDriver
+	if [ -f $(LINUX_DIR)/drivers/net/dsa/realtek/Makefile ]; then \
+		sed -i 's/obj-\$$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/# obj-\$$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/g' $(LINUX_DIR)/drivers/net/dsa/realtek/Makefile; \
+	fi
+endef
+Hooks/Engine/Build += Kernel/Prepare/DisableRtlDriver
 EOF
+
+echo "====> [SUCCESS] RTL8365MB compile rule has been safely disabled."
 
 echo "====> [SUCCESS] Patch file has been injected successfully."

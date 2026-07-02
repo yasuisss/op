@@ -189,7 +189,3 @@ cat << 'EOF' > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-vlan-missing
 EOF
 
 echo "====> [SUCCESS] Patch file has been injected successfully."
-	fi
-endef
-Hooks/Engine/Build += Kernel/Prepare/FixHeader
-EOF

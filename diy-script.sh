@@ -163,22 +163,23 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# 1. 【第一保：应对全新编译】强制创建 6.12 补丁目录并写入基于上下文的完美补丁
+# 1. 强制创建 6.12 补丁目录
 mkdir -p target/linux/rockchip/patches-6.12
+
+# 2. 写入硬核数学宏定义补丁，彻底摆脱对内核头文件的依赖
 cat << 'EOF' > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-vlan-missing-header.patch
 --- a/drivers/net/dsa/realtek/rtl8365mb_vlan.c
 +++ b/drivers/net/dsa/realtek/rtl8365mb_vlan.c
-@@ -10,3 +10,4 @@
- #include <linux/etherdevice.h>
-+#include <linux/bitfield.h>
- #include <linux/if_vlan.h>
+@@ -1,1 +1,3 @@
++#undef field_get
++#define field_get(mask, reg) (((reg) & (mask)) / ((mask) & ~((mask) - 1)))
+ /*
 EOF
 
-# 2. 【第二保：应对缓存编译】如果 GitHub Cache 已经把旧的 build_dir 释放出来了
-# 绕过 OpenWrt 的检查，直接暴力修改缓存源码目录里的文件，使其直接生效
+# 3. 强力缓存防御：如果 GitHub Cache 强行释放了旧的 build_dir，直接在缓存源头上暴力注入该宏
 if [ -d "build_dir" ]; then
-    echo "====> [CACHE DETECTED] Patching cached kernel source directly..."
-    find build_dir/ -name "rtl8365mb_vlan.c" -exec sed -i '/include <linux\/etherdevice.h>/a #include <linux/bitfield.h>' {} + 2>/dev/null || true
+    echo "====> [CACHE DETECTED] Injecting custom macro into cached source..."
+    find build_dir/ -name "rtl8365mb_vlan.c" -exec sed -i '1i #undef field_get\n#define field_get(mask, reg) (((reg) & (mask)) \/ ((mask) & ~((mask) - 1)))\n' {} + 2>/dev/null || true
 fi
 
-echo "====> [SUCCESS] Double-insurance patches applied successfully."
+echo "====> [SUCCESS] Hardcore math patch applied successfully."

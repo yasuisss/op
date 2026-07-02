@@ -163,16 +163,32 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# 在编译前强制把需要的头文件注入到该文件的最前方，彻底解决未定义错误
-sed -i '1s/^/#include <linux\/bitfield.h>\n/' target/linux/rockchip/files/drivers/net/dsa/realtek/rtl8365mb_vlan.c 2>/dev/null || true
+# 1. 强制创建 6.12 补丁目录
+mkdir -p target/linux/rockchip/patches-6.12
 
-# 如果上游源码是将驱动放在补丁中解压，直接用底层全局钩子对解压后的源码强制注入
-cat << 'EOF' >> target/linux/rockchip/Makefile
+# 2. 验证目录是否存在
+if [ -d "target/linux/rockchip/patches-6.12" ]; then
+    echo "====> [SUCCESS] rockchip 6.12 patches directory exists!"
+else
+    echo "====> [ERROR] Failed to create rockchip 6.12 patches directory!"
+    exit 1
+fi
 
-# 注入自定义挂钩：在内核源码准备就绪后、编译之前，强行在目标源码第一行插入头文件
-define Kernel/Prepare/FixHeader
-	if [ -f $(LINUX_DIR)/drivers/net/dsa/realtek/rtl8365mb_vlan.c ]; then \
-		sed -i '1s/^/#include <linux\/bitfield.h>\n/' $(LINUX_DIR)/drivers/net/dsa/realtek/rtl8365mb_vlan.c; \
+# 3. 接下来安心地向该目录写入你的补丁文件
+cat << 'EOF' > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-vlan-missing-header.patch
+--- a/drivers/net/dsa/realtek/rtl8365mb_vlan.c
++++ b/drivers/net/dsa/realtek/rtl8365mb_vlan.c
+@@ -10,6 +10,7 @@
+  * Copyright (C) 2022 Linus Walleij <linus.walleij@linaro.org>
+  */
+ 
++#include <linux/bitfield.h>
+ #include <linux/etherdevice.h>
+ #include <linux/if_vlan.h>
+ 
+EOF
+
+echo "====> [SUCCESS] Patch file has been injected successfully."
 	fi
 endef
 Hooks/Engine/Build += Kernel/Prepare/FixHeader

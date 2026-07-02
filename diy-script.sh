@@ -163,28 +163,22 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# =================================================================
-# 终极拦截：直接修改 Rockchip 平台内核网络驱动的 Makefile 规则
-# =================================================================
-
-# 1. 强制在 OpenWrt 平台内核文件的 Makefile 中注释掉这个有 Bug 的 Realtek 驱动
-# 无论内核怎么解压，直接在核心平台补丁/文件里抹去它，使其根本不会被触发编译
-if [ -d "target/linux/rockchip" ]; then
-    # 查找 rockchip 平台下所有的内核驱动编译 Makefile 规则并强行注释掉该模块
-    find target/linux/rockchip/ -name "Makefile" | xargs sed -i 's/obj-$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/# obj-$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/g' 2>/dev/null || true
-fi
-
-# 2. 编写一个更强的底层编译钩子（Makefile Hook），在内核刚刚解压完毕后，直接破坏掉该驱动的 Makefile，防止被编译
-cat << 'EOF' >> target/linux/rockchip/Makefile
-
-define Kernel/Prepare/DisableRtlDriver
-	if [ -f $(LINUX_DIR)/drivers/net/dsa/realtek/Makefile ]; then \
-		sed -i 's/obj-\$$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/# obj-\$$(CONFIG_NET_DSA_REALTEK_RTL8365MB)/g' $(LINUX_DIR)/drivers/net/dsa/realtek/Makefile; \
-	fi
-endef
-Hooks/Engine/Build += Kernel/Prepare/DisableRtlDriver
+# 1. 【第一保：应对全新编译】强制创建 6.12 补丁目录并写入基于上下文的完美补丁
+mkdir -p target/linux/rockchip/patches-6.12
+cat << 'EOF' > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-vlan-missing-header.patch
+--- a/drivers/net/dsa/realtek/rtl8365mb_vlan.c
++++ b/drivers/net/dsa/realtek/rtl8365mb_vlan.c
+@@ -10,3 +10,4 @@
+ #include <linux/etherdevice.h>
++#include <linux/bitfield.h>
+ #include <linux/if_vlan.h>
 EOF
 
-echo "====> [SUCCESS] RTL8365MB compile rule has been safely disabled."
+# 2. 【第二保：应对缓存编译】如果 GitHub Cache 已经把旧的 build_dir 释放出来了
+# 绕过 OpenWrt 的检查，直接暴力修改缓存源码目录里的文件，使其直接生效
+if [ -d "build_dir" ]; then
+    echo "====> [CACHE DETECTED] Patching cached kernel source directly..."
+    find build_dir/ -name "rtl8365mb_vlan.c" -exec sed -i '/include <linux\/etherdevice.h>/a #include <linux/bitfield.h>' {} + 2>/dev/null || true
+fi
 
-echo "====> [SUCCESS] Patch file has been injected successfully."
+echo "====> [SUCCESS] Double-insurance patches applied successfully."

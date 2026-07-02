@@ -178,14 +178,9 @@ fi
 cat << 'EOF' > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-vlan-missing-header.patch
 --- a/drivers/net/dsa/realtek/rtl8365mb_vlan.c
 +++ b/drivers/net/dsa/realtek/rtl8365mb_vlan.c
-@@ -10,6 +10,7 @@
-  * Copyright (C) 2022 Linus Walleij <linus.walleij@linaro.org>
-  */
- 
+@@ -1,1 +1,2 @@
 +#include <linux/bitfield.h>
- #include <linux/etherdevice.h>
- #include <linux/if_vlan.h>
- 
+ /*
 EOF
 
 echo "====> [SUCCESS] Patch file has been injected successfully."

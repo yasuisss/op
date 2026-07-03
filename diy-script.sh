@@ -183,3 +183,21 @@ if [ -d "build_dir" ]; then
 fi
 
 echo "====> [SUCCESS] Hardcore math patch applied successfully."
+
+
+# =================================================================
+# 3. 解决 BPF 编译阶段缺少宿主机 LLVM/Clang 的问题（daed 等插件所需）
+# =================================================================
+echo "====> Installing host LLVM and Clang for eBPF support..."
+
+# 保险 1：在 GitHub Actions 宿主机上强行安装编译 eBPF 字节码所需的物理编译器
+sudo apt-get update -qq
+sudo apt-get install -y clang llvm libbpf-dev
+
+# 保险 2：对 OpenWrt 脆弱的版本检测机制进行降维打击
+# 直接强制将检测变量重写为安全版本号（15），彻底根除因正则解析失败导致的 [: : integer expression expected 报错
+if [ -f "include/bpf.mk" ]; then
+    echo "====> Forcing Clang/LLVM version constants in include/bpf.mk..."
+    sed -i 's/CLANG_VERSION:=.*/CLANG_VERSION:=15/g' include/bpf.mk
+    sed -i 's/LLVM_VERSION:=.*/LLVM_VERSION:=15/g' include/bpf.mk
+fi

@@ -186,16 +186,15 @@ echo "====> [SUCCESS] Hardcore math patch applied successfully."
 
 
 # =================================================================
-# 3. 解决 BPF 编译阶段缺少宿主机 LLVM/Clang 的问题（daed 等插件所需）
+# 3. 补齐宿主机 eBPF/BTF 编译工具链（解决 vmlinux-btf 缺失与 Clang 报错）
 # =================================================================
-echo "====> Installing host LLVM and Clang for eBPF support..."
+echo "====> Installing host tools for eBPF and BTF generation..."
 
-# 保险 1：在 GitHub Actions 宿主机上强行安装编译 eBPF 字节码所需的物理编译器
+# 安装 clang、llvm 以及生成 BTF 核心依赖的 pahole 工具（dwarves）
 sudo apt-get update -qq
-sudo apt-get install -y clang llvm libbpf-dev
+sudo apt-get install -y clang llvm libbpf-dev dwarves
 
-# 保险 2：对 OpenWrt 脆弱的版本检测机制进行降维打击
-# 直接强制将检测变量重写为安全版本号（15），彻底根除因正则解析失败导致的 [: : integer expression expected 报错
+# 强行锁定 include/bpf.mk 中的版本常量，防止 OpenWrt 脚本因正则解析失败报出 integer expression expected 错误
 if [ -f "include/bpf.mk" ]; then
     echo "====> Forcing Clang/LLVM version constants in include/bpf.mk..."
     sed -i 's/CLANG_VERSION:=.*/CLANG_VERSION:=15/g' include/bpf.mk

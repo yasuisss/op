@@ -86,22 +86,6 @@ sed -i "s|ARMv8|ARMv8_lean|g" package/luci-app-amlogic/root/etc/config/amlogic
 # SmartDNS
 git clone --depth=1 -b master https://github.com/pymumu/luci-app-smartdns package/luci-app-smartdns
 git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
-# ----------------------------------------------------------------
-# 补齐 smartdns 编译缺失的 lang/rust 环境
-# ----------------------------------------------------------------
-
-# 如果 packages/lang/rust 不存在，则从官方 packages 仓库单独拉取最新的 rust 支持
-if [ ! -d "feeds/packages/lang/rust" ]; then
-    echo "Rust environment missing, fetching from official packages..."
-    git clone --depth=1 https://github.com/openwrt/packages.git /tmp/openwrt-packages
-    mkdir -p feeds/packages/lang
-    cp -r /tmp/openwrt-packages/lang/rust feeds/packages/lang/
-    rm -rf /tmp/openwrt-packages
-fi
-
-# 在 package 目录下创建一个符号链接，防止 smartdns 用相对路径 ../../lang/rust 找不到
-mkdir -p package/lang
-ln -sf ../../feeds/packages/lang/rust package/lang/rust
 
 # msd_lite
 git clone --depth=1 https://github.com/ximiTech/luci-app-msd_lite package/luci-app-msd_lite
@@ -178,7 +162,8 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 # sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/view/v2ray_server/*.htm
 
 # 测试开启bbr3
-sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
+# sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
+sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
 # 强制让内核编译产生 crc-itu-t.ko 和 cifs_arc4.ko 模块
 sed -i 's/CONFIG_CRC_ITU_T=y/CONFIG_CRC_ITU_T=m/g' target/linux/generic/config-6.18 2>/dev/null || true

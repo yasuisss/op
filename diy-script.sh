@@ -161,43 +161,9 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 # sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
+# 强制删除可能导致冲突的旧内核编译目录
+rm -rf build_dir/target-aarch64_generic_musl/linux-rockchip_armv8/
+rm -rf staging_dir/target-aarch64_generic_musl/root-rockchip/
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a
-
-# 1. 强制创建 6.12 补丁目录
-mkdir -p target/linux/rockchip/patches-6.12
-
-# 2. 写入硬核数学宏定义补丁，彻底摆脱对内核头文件的依赖
-cat << 'EOF' > target/linux/rockchip/patches-6.12/999-fix-rtl8365mb-vlan-missing-header.patch
---- a/drivers/net/dsa/realtek/rtl8365mb_vlan.c
-+++ b/drivers/net/dsa/realtek/rtl8365mb_vlan.c
-@@ -1,1 +1,3 @@
-+#undef field_get
-+#define field_get(mask, reg) (((reg) & (mask)) / ((mask) & ~((mask) - 1)))
- /*
-EOF
-
-# 3. 强力缓存防御：如果 GitHub Cache 强行释放了旧的 build_dir，直接在缓存源头上暴力注入该宏
-if [ -d "build_dir" ]; then
-    echo "====> [CACHE DETECTED] Injecting custom macro into cached source..."
-    find build_dir/ -name "rtl8365mb_vlan.c" -exec sed -i '1i #undef field_get\n#define field_get(mask, reg) (((reg) & (mask)) \/ ((mask) & ~((mask) - 1)))\n' {} + 2>/dev/null || true
-fi
-
-echo "====> [SUCCESS] Hardcore math patch applied successfully."
-
-
-# =================================================================
-# 3. 补齐宿主机 eBPF/BTF 编译工具链（解决 vmlinux-btf 缺失与 Clang 报错）
-# =================================================================
-echo "====> Installing host tools for eBPF and BTF generation..."
-
-# 安装 clang、llvm 以及生成 BTF 核心依赖的 pahole 工具（dwarves）
-sudo apt-get update -qq
-sudo apt-get install -y clang llvm libbpf-dev dwarves
-
-# 强行锁定 include/bpf.mk 中的版本常量，防止 OpenWrt 脚本因正则解析失败报出 integer expression expected 错误
-if [ -f "include/bpf.mk" ]; then
-    echo "====> Forcing Clang/LLVM version constants in include/bpf.mk..."
-    sed -i 's/CLANG_VERSION:=.*/CLANG_VERSION:=15/g' include/bpf.mk
-    sed -i 's/LLVM_VERSION:=.*/LLVM_VERSION:=15/g' include/bpf.mk
-fi

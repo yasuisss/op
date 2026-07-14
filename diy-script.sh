@@ -161,9 +161,10 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 # sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
-# 强制删除可能导致冲突的旧内核编译目录
-rm -rf build_dir/target-aarch64_generic_musl/linux-rockchip_armv8/
-rm -rf staging_dir/target-aarch64_generic_musl/root-rockchip/
+# 找到 video.mk 中定义 kmod-fb 的地方，将其彻底替换为空白，防止它打包报错
+sed -i '/define KernelPackage\/fb/,/^$(eval $(call KernelPackage,fb))$/d' package/kernel/linux/modules/video.mk
 
+# 为了保险起见，直接在底层强行让 kmod-fb 依赖满足（欺骗编译系统）
+sed -i 's/DEPENDS:=/DEPENDS:=+kmod-drm /g' package/kernel/linux/modules/video.mk
 ./scripts/feeds update -a
 ./scripts/feeds install -a

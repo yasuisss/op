@@ -161,10 +161,14 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 # sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
-# 找到 video.mk 中定义 kmod-fb 的地方，将其彻底替换为空白，防止它打包报错
-sed -i '/define KernelPackage\/fb/,/^$(eval $(call KernelPackage,fb))$/d' package/kernel/linux/modules/video.mk
 
-# 为了保险起见，直接在底层强行让 kmod-fb 依赖满足（欺骗编译系统）
+# 绕过 kmod-fb 报错
+sed -i '/define KernelPackage\/fb/,/^$(eval $(call KernelPackage,fb))$/d' package/kernel/linux/modules/video.mk
 sed -i 's/DEPENDS:=/DEPENDS:=+kmod-drm /g' package/kernel/linux/modules/video.mk
+
+# 绕过这次的 kmod-drm-rockchip 报错
+sed -i '/define KernelPackage\/drm-rockchip/,/^$(eval $(call KernelPackage,drm-rockchip))$/d' target/linux/rockchip/modules.mk
+echo "CONFIG_PACKAGE_kmod-drm-rockchip=n" >> .config
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a

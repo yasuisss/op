@@ -161,5 +161,8 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 # sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
+# 在你的 GitHub Actions 工作流中，执行 make defconfig 之前加入以下命令：
+sed -i 's/DEPENDS:=.*/& +kmod-drm-kms-helper/' target/linux/rockchip/modules.mk
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a

@@ -167,5 +167,14 @@ sed -i '/CONFIG_PACKAGE_kmod-fb/d' .config
 echo "CONFIG_PACKAGE_kmod-drm-rockchip=n" >> .config
 echo "CONFIG_PACKAGE_kmod-drm-kms-helper=n" >> .config
 
+# 移除旧版损坏的 xtables-addons
+rm -rf feeds/packages/net/xtables-addons
+rm -rf package/feeds/packages/xtables-addons
+
+# 从官方或较新的维护源克隆最新的 xtables-addons 源码
+git clone https://github.com/openwrt/packages.git /tmp/owrt-pkgs
+mv /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/xtables-addons
+rm -rf /tmp/owrt-pkgs
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a

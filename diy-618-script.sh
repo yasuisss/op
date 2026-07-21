@@ -166,20 +166,21 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
 # 强制让内核编译产生 crc-itu-t.ko 和 cifs_arc4.ko 模块
-sed -i 's/CONFIG_CRC_ITU_T=y/CONFIG_CRC_ITU_T=m/g' target/linux/generic/config-6.18 2>/dev/null || true
-sed -i 's/CONFIG_CRYPTO_ARC4=y/CONFIG_CRYPTO_ARC4=m/g' target/linux/generic/config-6.18 2>/dev/null || true
+# sed -i 's/CONFIG_CRC_ITU_T=y/CONFIG_CRC_ITU_T=m/g' target/linux/generic/config-6.18 2>/dev/null || true
+# sed -i 's/CONFIG_CRYPTO_ARC4=y/CONFIG_CRYPTO_ARC4=m/g' target/linux/generic/config-6.18 2>/dev/null || true
 
 # 如果不存在该配置，则直接追加
-if ! grep -q "CONFIG_CRC_ITU_T=" target/linux/generic/config-6.18; then
-    echo "CONFIG_CRC_ITU_T=m" >> target/linux/generic/config-6.18
-fi
-if ! grep -q "CONFIG_CRYPTO_ARC4=" target/linux/generic/config-6.18; then
-    echo "CONFIG_CRYPTO_ARC4=m" >> target/linux/generic/config-6.18
-fi
-sed -i '/kmod-lib-crc-itu-t/d' package/kernel/linux/modules/lib.mk
-sed -i '/crc-itu-t.ko/d' package/kernel/linux/modules/lib.mk
-sed -i '/kmod-fs-smbfs-common/d' package/kernel/linux/modules/fs.mk
-sed -i '/cifs_arc4.ko/d' package/kernel/linux/modules/fs.mk
+# if ! grep -q "CONFIG_CRC_ITU_T=" target/linux/generic/config-6.18; then
+#     echo "CONFIG_CRC_ITU_T=m" >> target/linux/generic/config-6.18
+# fi
+# if ! grep -q "CONFIG_CRYPTO_ARC4=" target/linux/generic/config-6.18; then
+#     echo "CONFIG_CRYPTO_ARC4=m" >> target/linux/generic/config-6.18
+# fi
+# sed -i '/kmod-lib-crc-itu-t/d' package/kernel/linux/modules/lib.mk
+# sed -i '/crc-itu-t.ko/d' package/kernel/linux/modules/lib.mk
+# sed -i '/kmod-fs-smbfs-common/d' package/kernel/linux/modules/fs.mk
+# sed -i '/cifs_arc4.ko/d' package/kernel/linux/modules/fs.mk
+
 # 移除旧版损坏的 xtables-addons
 rm -rf feeds/packages/net/xtables-addons
 rm -rf package/feeds/packages/xtables-addons

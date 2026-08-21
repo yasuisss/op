@@ -116,6 +116,22 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+    - name: Apply Community dockerd Patch
+      run: |
+        PATCH_DIR="$OPENWRT_PATH/feeds/packages/utils/dockerd/patches"
+        mkdir -p $PATCH_DIR
+        rm -f $PATCH_DIR/999-*.patch
+        
+        wget -O $PATCH_DIR/001-skip-copy-nested-binaries.patch \
+          https://raw.githubusercontent.com/AndyChiang888/packages/refs/heads/dockerd/utils/dockerd/patches/001-skip-copy-nested-binaries.patch
+        
+        if [ -f "$PATCH_DIR/001-skip-copy-nested-binaries.patch" ]; then
+          echo "补丁下载完成并放置成功！"
+        else
+          echo "补丁下载失败！"
+          exit 1
+        fi
+
     - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files

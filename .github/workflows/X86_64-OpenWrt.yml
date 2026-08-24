@@ -116,17 +116,24 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-    - name: Directly Fix dockerd Makefile
+    - name: Patch dockerd via Makefile Hook
       run: |
         DOCKERD_MAKEFILE="$OPENWRT_PATH/feeds/packages/utils/dockerd/Makefile"
         
-        # 清理可能残留的 patch
+        # 1. 清理残留的旧 Patch
         rm -rf $OPENWRT_PATH/feeds/packages/utils/dockerd/patches/001-*.patch
         
-        # 在 Makefile 的 Build/Compile 逻辑前插入 sed 命令，解压后立刻擦除 copy 逻辑
+        # 2. 利用 OpenWrt 原生 Hook 机制，在源码解压后自动擦除报错逻辑
         if [ -f "$DOCKERD_MAKEFILE" ]; then
-          sed -i '/./hack\/make.sh binary/i \tsed -i "/copy_containerd/d; /copy_runc/d; /copy_rootlesskit/d" $(PKG_BUILD_DIR)/hack/make/binary-daemon' $DOCKERD_MAKEFILE
-          echo "Makefile 修改成功！"
+          cat << 'EOF' >> $DOCKERD_MAKEFILE
+
+        # 自动注入修复：在解压后、编译前移除 hack/make/binary-daemon 中的空 cp 逻辑
+        define Dockerd/FixBinaryDaemon
+          sed -i '/copy_containerd/d; /copy_runc/d; /copy_rootlesskit/d' $(1)/hack/make/binary-daemon
+          endef
+        Hooks/Prepare/Post += Dockerd/FixBinaryDaemon
+        EOF
+          echo "dockerd Makefile Hook 注入成功！"
         fi
 
     - name: Load Custom Configuration

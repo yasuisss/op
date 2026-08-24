@@ -123,16 +123,13 @@ jobs:
         # 1. 清理残留的旧 Patch
         rm -rf $OPENWRT_PATH/feeds/packages/utils/dockerd/patches/001-*.patch
         
-        # 2. 利用 OpenWrt 原生 Hook 机制，在源码解压后自动擦除报错逻辑
+        # 2. 注入符合 Makefile 缩进规范（Tab 字符）的生命周期 Hook
         if [ -f "$DOCKERD_MAKEFILE" ]; then
-          cat << 'EOF' >> $DOCKERD_MAKEFILE
-
-        # 自动注入修复：在解压后、编译前移除 hack/make/binary-daemon 中的空 cp 逻辑
-        define Dockerd/FixBinaryDaemon
-          sed -i '/copy_containerd/d; /copy_runc/d; /copy_rootlesskit/d' $(1)/hack/make/binary-daemon
-          endef
-        Hooks/Prepare/Post += Dockerd/FixBinaryDaemon
-        EOF
+          printf '\n# 自动注入修复：在解压后、编译前移除 hack/make/binary-daemon 中的空 cp 逻辑\n' >> $DOCKERD_MAKEFILE
+          printf 'define Dockerd/FixBinaryDaemon\n' >> $DOCKERD_MAKEFILE
+          printf '\tsed -i '\''/copy_containerd/d; /copy_runc/d; /copy_rootlesskit/d'\'' $(1)/hack/make/binary-daemon\n' >> $DOCKERD_MAKEFILE
+          printf 'endef\n' >> $DOCKERD_MAKEFILE
+          printf 'Hooks/Prepare/Post += Dockerd/FixBinaryDaemon\n' >> $DOCKERD_MAKEFILE
           echo "dockerd Makefile Hook 注入成功！"
         fi
 

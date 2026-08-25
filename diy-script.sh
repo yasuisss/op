@@ -167,6 +167,14 @@ git clone https://github.com/openwrt/packages.git /tmp/owrt-pkgs
 mv /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/xtables-addons
 rm -rf /tmp/owrt-pkgs
 
+# 彻底解决 dockerd 29.x cp 空路径报错 Bug
+DOCKERD_MK="feeds/packages/utils/dockerd/Makefile"
+if [ -f "$DOCKERD_MK" ]; then
+    # 在执行 ./hack/make.sh binary 之前，先强行用 sed 修改 hack/make/binary-daemon
+    sed -i 's|\./hack/make.sh binary|sed -i "/copy_containerd/d; /copy_runc/d; /copy_rootlesskit/d" hack/make/binary-daemon \&\& ./hack/make.sh binary|g' $DOCKERD_MK
+    echo "成功重写 dockerd Makefile 编译流程！"
+fi
+
 # TurboAcc nft-fullcone 补丁脚本（无SFE）
 # curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh --no-sfe
 # rm -f add_turboacc.sh

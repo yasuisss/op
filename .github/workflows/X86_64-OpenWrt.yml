@@ -116,23 +116,6 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-    - name: Patch dockerd via Makefile Hook
-      run: |
-        DOCKERD_MAKEFILE="$OPENWRT_PATH/feeds/packages/utils/dockerd/Makefile"
-        
-        # 1. 清理残留的旧 Patch
-        rm -rf $OPENWRT_PATH/feeds/packages/utils/dockerd/patches/001-*.patch
-        
-        # 2. 注入符合 Makefile 缩进规范（Tab 字符）的生命周期 Hook
-        if [ -f "$DOCKERD_MAKEFILE" ]; then
-          printf '\n# 自动注入修复：在解压后、编译前移除 hack/make/binary-daemon 中的空 cp 逻辑\n' >> $DOCKERD_MAKEFILE
-          printf 'define Dockerd/FixBinaryDaemon\n' >> $DOCKERD_MAKEFILE
-          printf '\tsed -i '\''/copy_containerd/d; /copy_runc/d; /copy_rootlesskit/d'\'' $(1)/hack/make/binary-daemon\n' >> $DOCKERD_MAKEFILE
-          printf 'endef\n' >> $DOCKERD_MAKEFILE
-          printf 'Hooks/Prepare/Post += Dockerd/FixBinaryDaemon\n' >> $DOCKERD_MAKEFILE
-          echo "dockerd Makefile Hook 注入成功！"
-        fi
-
     - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files

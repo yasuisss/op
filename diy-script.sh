@@ -163,13 +163,13 @@ sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package
 # echo "CONFIG_PACKAGE_kmod-drm-kms-helper=n" >> .config
 
 # 移除旧版损坏的 xtables-addons
-rm -rf feeds/packages/net/xtables-addons
-rm -rf package/feeds/packages/xtables-addons
+# rm -rf feeds/packages/net/xtables-addons
+# rm -rf package/feeds/packages/xtables-addons
 
 # 从官方或较新的维护源克隆最新的 xtables-addons 源码
-git clone https://github.com/openwrt/packages.git /tmp/owrt-pkgs
-mv /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/xtables-addons
-rm -rf /tmp/owrt-pkgs
+# git clone https://github.com/openwrt/packages.git /tmp/owrt-pkgs
+# mv /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/xtables-addons
+# rm -rf /tmp/owrt-pkgs
 
 # 克隆 sbwml 全套 Docker 组件
 git clone --depth=1 https://github.com/sbwml/packages_utils_dockerd feeds/packages/utils/dockerd

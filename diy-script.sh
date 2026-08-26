@@ -156,27 +156,35 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 # sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' /etc/rc.local
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
-# 强行剔除报错的内核显示模块，不改动 modules.mk 源码
-# sed -i '/CONFIG_PACKAGE_kmod-drm/d' .config
-# sed -i '/CONFIG_PACKAGE_kmod-fb/d' .config
-# echo "CONFIG_PACKAGE_kmod-drm-rockchip=n" >> .config
-# echo "CONFIG_PACKAGE_kmod-drm-kms-helper=n" >> .config
+# -------------------------------------------------------------------
+# 移除旧版损坏的 xtables-addons 并通过 sparse-clone 快速拉取最新版
+# -------------------------------------------------------------------
+rm -rf feeds/packages/net/xtables-addons package/feeds/packages/xtables-addons
+git clone --depth=1 --filter=blob:none --sparse https://github.com/openwrt/packages.git /tmp/owrt-pkgs
+cd /tmp/owrt-pkgs && git sparse-checkout set net/xtables-addons
+cd $GITHUB_WORKSPACE/openwrt
+mv -f /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/
+rm -rf /tmp/owrt-pkgs
 
-# 移除旧版损坏的 xtables-addons
-# rm -rf feeds/packages/net/xtables-addons
-# rm -rf package/feeds/packages/xtables-addons
+# -------------------------------------------------------------------
+# 克隆 sbwml 全套 Docker 组件（确保版本统一，100% 解决版本与 cp 报错）
+# -------------------------------------------------------------------
+rm -rf feeds/packages/utils/dockerd \
+       feeds/packages/utils/docker \
+       feeds/packages/utils/containerd \
+       feeds/packages/utils/runc
 
-# 从官方或较新的维护源克隆最新的 xtables-addons 源码
-# git clone https://github.com/openwrt/packages.git /tmp/owrt-pkgs
-# mv /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/xtables-addons
-# rm -rf /tmp/owrt-pkgs
-
-# 克隆 sbwml 全套 Docker 组件
 git clone --depth=1 https://github.com/sbwml/packages_utils_dockerd feeds/packages/utils/dockerd
 git clone --depth=1 https://github.com/sbwml/packages_utils_docker feeds/packages/utils/docker
 git clone --depth=1 https://github.com/sbwml/packages_utils_containerd feeds/packages/utils/containerd
 git clone --depth=1 https://github.com/sbwml/packages_utils_runc feeds/packages/utils/runc
 
-./scripts/feeds update -a
-./scripts/feeds install -a
+# 彻底抹去 sbwml/dockerd Makefile 里引发 cp 报错的 copy_ 逻辑
+DOCKERD_MK="feeds/packages/utils/dockerd/Makefile"
+if [ -f "$DOCKERD_MK" ]; then
+    # 安全注入：在 ./hack/make.sh 执行前增加擦除 copy 逻辑的命令
+    sed -i '/hack\/make.sh binary/i \tsed -i "/copy_/d" $(PKG_BUILD_DIR)/hack/make/binary-daemon' $DOCKERD_MK
+fi
+
+# 重新建立 packages 索引软链接（不需要跑 update -a，防止替换内容被冲掉）
 ./scripts/feeds install -a -p packages

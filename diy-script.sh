@@ -130,11 +130,10 @@ git clone --depth=1 https://github.com/sbwml/packages_utils_docker feeds/package
 git clone --depth=1 https://github.com/sbwml/packages_utils_containerd feeds/packages/utils/containerd
 git clone --depth=1 https://github.com/sbwml/packages_utils_runc feeds/packages/utils/runc
 
-# 直接在 sbwml/dockerd 的 Makefile 中追加清除 copy_ 的逻辑，不依赖插入 \t
+# 修复 dockerd：自动初始化本地 git 仓库绕过检查，并清除 copy_ 报错
 DOCKERD_MK="feeds/packages/utils/dockerd/Makefile"
 if [ -f "$DOCKERD_MK" ]; then
-    # 将原来的 ./hack/make.sh binary 替换为：先擦除 copy_ 再执行 ./hack/make.sh binary
-    sed -i 's|\./hack/make.sh binary|sed -i "/copy_/d" hack/make/binary-daemon \&\& ./hack/make.sh binary|g' $DOCKERD_MK
+    sed -i 's|\./hack/make.sh binary|git init \&\& git config user.name "builder" \&\& git config user.email "builder@local" \&\& git commit --allow-empty -m "init" \&\& sed -i "/copy_/d" hack/make/binary-daemon \&\& ./hack/make.sh binary|g' $DOCKERD_MK
 fi
 
 # 重新建立 packages 索引软链接

@@ -130,11 +130,10 @@ git clone --depth=1 https://github.com/sbwml/packages_utils_docker feeds/package
 git clone --depth=1 https://github.com/sbwml/packages_utils_containerd feeds/packages/utils/containerd
 git clone --depth=1 https://github.com/sbwml/packages_utils_runc feeds/packages/utils/runc
 
-# 修复 dockerd：初始化 git 并精准拦截 copy_ 逻辑
+# 修复 dockerd：关闭 set -u 校验，并让 copy_binaries 直接 return 0
 DOCKERD_MK="feeds/packages/utils/dockerd/Makefile"
 if [ -f "$DOCKERD_MK" ]; then
-    # 将 copy_ 替换为 true (即什么都不做直接返回成功 0)，既保留了参数结构，又避免了 cp 路径不存在的问题
-    sed -i 's|\./hack/make.sh binary|git init \&\& git config user.name "builder" \&\& git config user.email "builder@local" \&\& git commit --allow-empty -m "init" \&\& sed -i "s/copy_/true #/g" hack/make/binary-daemon \&\& ./hack/make.sh binary|g' $DOCKERD_MK
+    sed -i 's|\./hack/make.sh binary|git init \&\& git config user.name "builder" \&\& git config user.email "builder@local" \&\& git commit --allow-empty -m "init" \&\& sed -i "s/set -e/set +u\nset -e/g" hack/make/binary-daemon \&\& sed -i "/copy_binaries()/a \\treturn 0" hack/make/binary-daemon \&\& ./hack/make.sh binary|g' $DOCKERD_MK
 fi
 
 # 重新建立 packages 索引软链接

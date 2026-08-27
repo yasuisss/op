@@ -130,27 +130,15 @@ git clone --depth=1 https://github.com/sbwml/packages_utils_docker feeds/package
 git clone --depth=1 https://github.com/sbwml/packages_utils_containerd feeds/packages/utils/containerd
 git clone --depth=1 https://github.com/sbwml/packages_utils_runc feeds/packages/utils/runc
 
-# 修复 dockerd Makefile：仅加上初始化 git，保持 Makefile 结构绝对安全
+# 修复 dockerd 编译逻辑：直接用 bash -c 封装整套魔改命令
 DOCKERD_MK="feeds/packages/utils/dockerd/Makefile"
 if [ -f "$DOCKERD_MK" ]; then
-    sed -i 's|\./hack/make.sh binary|git init \&\& git config user.name "builder" \&\& git config user.email "builder@local" \&\& git commit --allow-empty -m "init" \&\& ./hack/make.sh binary|g' $DOCKERD_MK
-fi
+    # 先清理掉可能残余的旧 patches 目录，防止格式破损报错
+    rm -rf feeds/packages/utils/dockerd/patches/999-fix-binary-daemon.patch
 
-# 创建标准 Patch 补丁文件，强行屏蔽 binary-daemon 中的 cp 报错与 set -u 检查
-mkdir -p feeds/packages/utils/dockerd/patches
-cat << 'EOF' > feeds/packages/utils/dockerd/patches/999-fix-binary-daemon.patch
---- a/hack/make/binary-daemon
-+++ b/hack/make/binary-daemon
-@@ 1,6 +1,8 @@
- #!/usr/bin/env bash
- set -e
-+set +u
- 
- copy_binaries() {
-+	return 0
- 	local dir="$1"
- 	shift
-EOF
+    # 精准替换：在运行 ./hack/make.sh 前，直接用一句话搞定 git 初始化 + 禁用 set -u + 拦截 copy_binaries
+    sed -i 's|\./hack/make.sh binary|git init \&\& git config user.name "builder" \&\& git config user.email "builder@local" \&\& git commit --allow-empty -m "init" \&\& sed -i "s/set -e/set +u\\nset -e/g" hack/make/binary-daemon \&\& sed -i "s/copy_binaries()/copy_binaries() { return 0; }\\n_old_copy_binaries()/g" hack/make/binary-daemon \&\& ./hack/make.sh binary|g' $DOCKERD_MK
+fi
 
 # 重新建立 packages 索引软链接
 ./scripts/feeds install -a -p packages

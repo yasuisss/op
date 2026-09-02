@@ -108,11 +108,8 @@ find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/
 sed -i '/exit 0/i echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
 # 移除引起 /sbin/wifi 冲突的 wifi-scripts 源码包
-find package/ -follow -name "wifi-scripts" -type d -exec rm -rf {} + 2>/dev/null || true
-
-# 在配置文件中明确禁用 wifi-scripts
-sed -i '/CONFIG_PACKAGE_wifi-scripts/d' .config 2>/dev/null || true
-echo "# CONFIG_PACKAGE_wifi-scripts is not set" >> .config
+sed -i 's/opkg install/opkg install --force-overwrite/g' package/Makefile 2>/dev/null || true
+sed -i 's/IPKG_INSTROOT=\$(TARGET_DIR) \$(STAGING_DIR_HOST)\/bin\/opkg/& --force-overwrite/' include/package-ipkg.mk 2>/dev/null || true
 
 # -------------------------------------------------------------------
 # 移除旧版损坏的 xtables-addons 并通过 sparse-clone 快速拉取最新版

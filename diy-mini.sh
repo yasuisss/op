@@ -7,7 +7,10 @@ sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_gener
 # sed -i 's/\/bin\/ash/\/usr\/bin\/zsh/g' package/base-files/files/etc/passwd
 
 # TTYD 免登录
-# sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
+sed -i 's/\/bin\/login/\/bin\/login -f root/' feeds/packages/utils/ttyd/files/ttyd.config
+
+# 删除ipv6前缀
+sed -i 's/auto//' package/base-files/luci2/bin/config_generate
 
 # 移除要替换的包
 rm -rf feeds/packages/net/mosdns
@@ -20,13 +23,17 @@ rm -rf feeds/luci/themes/luci-theme-netgear
 rm -rf feeds/luci/applications/luci-app-mosdns
 rm -rf feeds/luci/applications/luci-app-netdata
 rm -rf feeds/luci/applications/luci-app-serverchan
-rm -rf feeds/package/helloworld
-rm -rf package/helloworld
+rm -rf feeds/luci/applications/luci-app-smartdns
+# rm -rf feeds/packages/helloworld
 rm -rf feeds/packages/lang/golang
 rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
 rm -rf feeds/luci/applications/luci-app-passwall
 rm -rf feeds/packages/net/daed
 rm -rf feeds/luci/applications/luci-app-daed
+rm -rf feeds/packages/utils/dockerd
+rm -rf feeds/packages/utils/docker
+rm -rf feeds/packages/utils/containerd
+rm -rf feeds/packages/utils/runc
 # rm -rf feeds/packages/net/ddns-go
 
 # Git稀疏克隆，只克隆指定目录到本地
@@ -45,7 +52,7 @@ function git_sparse_clone() {
 # git clone --depth=1 https://github.com/esirplayground/luci-app-poweroff package/luci-app-poweroff
 git clone --depth=1 https://github.com/Jason6111/luci-app-netdata package/luci-app-netdata
 git_sparse_clone main https://github.com/Lienol/openwrt-package luci-app-filebrowser luci-app-ssr-mudb-server
-git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+git clone https://github.com/sbwml/packages_lang_golang -b 27.x feeds/packages/lang/golang
 
 # 科学上网插件
 # git clone -b main https://github.com/Openwrt-Passwall/openwrt-passwall package/psw
@@ -56,7 +63,8 @@ git clone https://github.com/sbwml/openwrt_helloworld package/helloworld
 # git clone --depth=1 https://github.com/fw876/helloworld.git package/helloworld
 # git clone --depth=1 https://github.com/fw876/helloworld.git package/luci-app-ssr-plus
 # git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwall2
-git clone https://github.com/QiuSimons/luci-app-daed package/dae
+# git clone https://github.com/QiuSimons/luci-app-daed package/dae
+git clone https://github.com/QiuSimons/luci-app-daed package/luci-app-daed
 
 # Themes
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon

@@ -100,32 +100,30 @@ sed -i 's/os.date()/os.date("%a %Y-%m-%d %H:%M:%S")/g' package/lean/autocore/fil
 # date_version=$(date +"%y.%m.%d")
 # orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
 # sed -i "s/${orig_version}/R${date_version} by yasui/g" package/lean/default-settings/files/zzz-default-settings
-# -------------------------------------------------------------
-# 1. 彻底修改源码中的版本前缀与默认版本号定义
-# -------------------------------------------------------------
+# -------------------------------------------------------------------
+# 修复固件首页版本号显示
+# -------------------------------------------------------------------
 date_version=$(date +"%y.%m.%d")
 
-# 修改 package/base-files 里的默认系统名
-sed -i "s/OpenWrt/LEDE/g" package/base-files/files/bin/config_generate 2>/dev/null || true
-
-# 彻底清空 zzz-default-settings 里的版本替换逻辑，防止被原作者逻辑二次写入
+# 1. 彻底移除 zzz-default-settings 中注入 git hash 的逻辑，防止首次开机被覆盖
 sed -i '/DISTRIB_REVISION/d' package/lean/default-settings/files/zzz-default-settings
 sed -i '/DISTRIB_DESCRIPTION/d' package/lean/default-settings/files/zzz-default-settings
 
-# -------------------------------------------------------------
-# 2. 从源码根源禁用 git revision 哈希拼接
-# -------------------------------------------------------------
-# LEDE 源码中的版本生成脚本在 scripts/getver.sh
-# 将其直接固定输出为你想要的纯净版本号，切断 r8140-b952adf4c 的来源
-echo "echo 'R${date_version} by yasui'" > scripts/getver.sh
-chmod +x scripts/getver.sh
+# 2. 直接在 base-files 的预置文件中写入最终展示结果
+mkdir -p package/base-files/files/etc
+cat > package/base-files/files/etc/openwrt_release <<EOF
+DISTRIB_ID='LEDE'
+DISTRIB_RELEASE='R${date_version} by yasui'
+DISTRIB_REVISION='R${date_version} by yasui'
+DISTRIB_TARGET='x86/64'
+DISTRIB_ARCH='x86_64'
+DISTRIB_DESCRIPTION='LEDE '
+DISTRIB_TAINTS=''
+EOF
 
-# -------------------------------------------------------------
-# 3. 在系统每次开机 (rc.local) 时锁定 /etc/openwrt_release
-# -------------------------------------------------------------
-# 无论前面有什么脚本覆盖，rc.local 执行后都会将其强制更正
-sed -i '/exit 0/i sed -i "s/DISTRIB_REVISION=.*/DISTRIB_REVISION=\x27R'"${date_version}"' by yasui\x27/g" /etc/openwrt_release' package/base-files/files/etc/rc.local
-sed -i '/exit 0/i sed -i "s/DISTRIB_DESCRIPTION=.*/DISTRIB_DESCRIPTION=\x27LEDE \x27/g" /etc/openwrt_release' package/base-files/files/etc/rc.local
+# 3. 在 rc.local 中增加兜底重写，确保首页读取 100% 纯净
+sed -i "/exit 0/i sed -i \"s/DISTRIB_REVISION=.*/DISTRIB_REVISION='R${date_version} by yasui'/g\" /etc/openwrt_release" package/base-files/files/etc/rc.local
+sed -i "/exit 0/i sed -i \"s/DISTRIB_DESCRIPTION=.*/DISTRIB_DESCRIPTION='LEDE '/g\" /etc/openwrt_release" package/base-files/files/etc/rc.local
 
 # 取消主题默认设置
 find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/set luci.main.mediaurlbase/d' {} \;

@@ -100,30 +100,27 @@ sed -i 's/os.date()/os.date("%a %Y-%m-%d %H:%M:%S")/g' package/lean/autocore/fil
 # date_version=$(date +"%y.%m.%d")
 # orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
 # sed -i "s/${orig_version}/R${date_version} by yasui/g" package/lean/default-settings/files/zzz-default-settings
-# -------------------------------------------------------------------
-# 修复固件首页版本号显示
-# -------------------------------------------------------------------
+# -------------------------------------------------------------
+# 修复首页版本号显示为纯净目标格式
+# -------------------------------------------------------------
 date_version=$(date +"%y.%m.%d")
 
-# 1. 彻底移除 zzz-default-settings 中注入 git hash 的逻辑，防止首次开机被覆盖
+# 1. 修改 include/version.mk 默认的版本号定义（将 26.05.20 改为当前日期）
+sed -i "s/26.05.20/${date_version}/g" include/version.mk 2>/dev/null || true
+
+# 2. 清理 zzz-default-settings 中注入 git hash 的逻辑
 sed -i '/DISTRIB_REVISION/d' package/lean/default-settings/files/zzz-default-settings
 sed -i '/DISTRIB_DESCRIPTION/d' package/lean/default-settings/files/zzz-default-settings
 
-# 2. 直接在 base-files 的预置文件中写入最终展示结果
-mkdir -p package/base-files/files/etc
-cat > package/base-files/files/etc/openwrt_release <<EOF
-DISTRIB_ID='LEDE'
-DISTRIB_RELEASE='R${date_version} by yasui'
-DISTRIB_REVISION='R${date_version} by yasui'
-DISTRIB_TARGET='x86/64'
-DISTRIB_ARCH='x86_64'
-DISTRIB_DESCRIPTION='LEDE '
-DISTRIB_TAINTS=''
-EOF
+# 3. 核心拦截：直接修改 LuCI 首页生成 status 接口的 Lua 文件
+# 无论底层生成了什么哈希，前端获取版本时直接强制返回目标文本
+LUCI_STATUS="feeds/luci/modules/luci-mod-admin-full/luasrc/controller/admin/index.lua"
+if [ -f "$LUCI_STATUS" ]; then
+    sed -i "s/distversion.*/distversion = 'R${date_version} by yasui',/g" $LUCI_STATUS
+fi
 
-# 3. 在 rc.local 中增加兜底重写，确保首页读取 100% 纯净
-sed -i "/exit 0/i sed -i \"s/DISTRIB_REVISION=.*/DISTRIB_REVISION='R${date_version} by yasui'/g\" /etc/openwrt_release" package/base-files/files/etc/rc.local
-sed -i "/exit 0/i sed -i \"s/DISTRIB_DESCRIPTION=.*/DISTRIB_DESCRIPTION='LEDE '/g\" /etc/openwrt_release" package/base-files/files/etc/rc.local
+# 如果是使用 autocore 显示状态，同步替换 autocore 的 index.htm
+find package/lean/autocore/ -type f -name "index.htm" -exec sed -i "s/LEDE R[0-9.]*r[0-9]*-[a-z0-9]*/LEDE R${date_version} by yasui/g" {} + 2>/dev/null || true
 
 # 取消主题默认设置
 find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/set luci.main.mediaurlbase/d' {} \;

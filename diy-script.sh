@@ -101,26 +101,31 @@ sed -i 's/os.date()/os.date("%a %Y-%m-%d %H:%M:%S")/g' package/lean/autocore/fil
 # orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
 # sed -i "s/${orig_version}/R${date_version} by yasui/g" package/lean/default-settings/files/zzz-default-settings
 # -------------------------------------------------------------
-# 修复首页版本号显示为纯净目标格式
+# 修复新版 LuCI 首页版本显示 (JS 前端与系统底层全局拦截)
 # -------------------------------------------------------------
 date_version=$(date +"%y.%m.%d")
 
-# 1. 修改 include/version.mk 默认的版本号定义（将 26.05.20 改为当前日期）
-sed -i "s/26.05.20/${date_version}/g" include/version.mk 2>/dev/null || true
+# 1. 拦截现代 LuCI (openwrt-25.12) 的前端 JavaScript 状态视图
+# 直接把前端渲染版本号的代码强制替换为固定目标字符串
+find feeds/luci/ package/ -type f \( -name "*.js" -o -name "*.htm" \) -exec sed -i "s/LEDE R[0-9.]*r[0-9]*-[a-z0-9]*/LEDE R${date_version} by yasui/g" {} + 2>/dev/null || true
 
-# 2. 清理 zzz-default-settings 中注入 git hash 的逻辑
+# 2. 拦截系统概览视图 (针对 luci-mod-status / luci-mod-admin-full 的 10_system.js)
+find feeds/luci/modules/luci-mod-status/ feeds/luci/modules/luci-mod-admin-full/ -type f -name "*system.js" 2>/dev/null | while read -r file; do
+    sed -i "s/\(release\.revision\)/'R${date_version} by yasui'/g" "$file"
+    sed -i "s/\(release\.description\)/'LEDE '/g" "$file"
+done
+
+# 3. 彻底根除 lean 源码中写死的 R26.05.20 全局宏
+# 查找源码中所有写死 26.05.20 的地方并全部统一更替为当前编译日期
+find package/lean/ include/ -type f -exec sed -i "s/26\.05\.20/${date_version}/g" {} + 2>/dev/null || true
+
+# 4. 清理 zzz-default-settings 里的旧写入，并在开机脚本锁定 release
 sed -i '/DISTRIB_REVISION/d' package/lean/default-settings/files/zzz-default-settings
 sed -i '/DISTRIB_DESCRIPTION/d' package/lean/default-settings/files/zzz-default-settings
-
-# 3. 核心拦截：直接修改 LuCI 首页生成 status 接口的 Lua 文件
-# 无论底层生成了什么哈希，前端获取版本时直接强制返回目标文本
-LUCI_STATUS="feeds/luci/modules/luci-mod-admin-full/luasrc/controller/admin/index.lua"
-if [ -f "$LUCI_STATUS" ]; then
-    sed -i "s/distversion.*/distversion = 'R${date_version} by yasui',/g" $LUCI_STATUS
-fi
-
-# 如果是使用 autocore 显示状态，同步替换 autocore 的 index.htm
-find package/lean/autocore/ -type f -name "index.htm" -exec sed -i "s/LEDE R[0-9.]*r[0-9]*-[a-z0-9]*/LEDE R${date_version} by yasui/g" {} + 2>/dev/null || true
+cat >> package/lean/default-settings/files/zzz-default-settings <<EOF
+sed -i "s/DISTRIB_REVISION='.*'/DISTRIB_REVISION='R${date_version} by yasui'/g" /etc/openwrt_release
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='LEDE '/g" /etc/openwrt_release
+EOF
 
 # 取消主题默认设置
 find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/set luci.main.mediaurlbase/d' {} \;

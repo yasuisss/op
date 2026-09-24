@@ -101,33 +101,25 @@ sed -i 's/os.date()/os.date("%a %Y-%m-%d %H:%M:%S")/g' package/lean/autocore/fil
 # orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
 # sed -i "s/${orig_version}/R${date_version} by yasui/g" package/lean/default-settings/files/zzz-default-settings
 # -------------------------------------------------------------
-# 恢复并正确设置固件首页版本号
+# 精准修改 autocore 中的固件版本（首页展示的真正源头）
 # -------------------------------------------------------------
 date_version=$(date +"%y.%m.%d")
 
-# 1. 精准修改 Lean 源码中的版本配置文件 (定义默认 DISTRIB_REVISION 的源头)
-# Lean 源码中的版本默认字串写在 package/lean/default-settings/files/zzz-default-settings
-sed -i "/DISTRIB_REVISION/d" package/lean/default-settings/files/zzz-default-settings
-sed -i "/DISTRIB_DESCRIPTION/d" package/lean/default-settings/files/zzz-default-settings
+# 1. 直接将 autocore 脚本中写死的版本号与拼接逻辑换成你的目标格式
+find package/lean/autocore/ -type f \( -name "autocore*" -o -name "index.htm" -o -name "*.lua" -o -name "*.json" \) 2>/dev/null | while read -r file; do
+    sed -i "s/R26\.[0-9]*\.[0-9]*/R${date_version} by yasui/g" "$file"
+    sed -i 's/\$(cat \/etc\/openwrt_version)//g' "$file"
+    sed -i 's/`cat \/etc\/openwrt_version`//g' "$file"
+done
 
-# 2. 拦截并覆写 package/base-files 生成 /etc/openwrt_release 的核心脚本
-# 这是 OpenWrt/LEDE 体系中真正向 /etc/openwrt_release 写入版本的底层构建处
-IMAGE_CONFIG="package/base-files/image-config.in"
-if [ -f "$IMAGE_CONFIG" ]; then
-    sed -i "s/default \"OpenWrt\"/default \"LEDE\"/g" $IMAGE_CONFIG
-fi
+# 2. 修改系统底层的 /etc/openwrt_version
+# 既然系统总喜欢读这个文件，直接在编译期将它写入为空（彻底杜绝 r8141-xxxxxxx）
+mkdir -p package/base-files/files/etc
+echo "" > package/base-files/files/etc/openwrt_version
 
-# 3. 在系统首次启动执行 zzz-default-settings 时，直接把目标值覆写进去
-# 注意：使用安全转义，单双引号严格隔离，保证写出的 /etc/openwrt_release 语法标准
-cat >> package/lean/default-settings/files/zzz-default-settings << 'EOF'
-
-# 强制修正系统版本信息
-sed -i "s/^DISTRIB_REVISION=.*/DISTRIB_REVISION='R__DATE_VERSION__ by yasui'/g" /etc/openwrt_release
-sed -i "s/^DISTRIB_DESCRIPTION=.*/DISTRIB_DESCRIPTION='LEDE '/g" /etc/openwrt_release
-EOF
-
-# 动态填入当前的日期版本，避免复杂的多层引号转义
-sed -i "s/__DATE_VERSION__/${date_version}/g" package/lean/default-settings/files/zzz-default-settings
+# 3. 同步修正 zzz-default-settings
+sed -i "s/R26\.[0-9]*\.[0-9]*/R${date_version} by yasui/g" package/lean/default-settings/files/zzz-default-settings 2>/dev/null || true
+sed -i 's/\$(cat \/etc\/openwrt_version)//g' package/lean/default-settings/files/zzz-default-settings 2>/dev/null || true
 
 # 取消主题默认设置
 find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/set luci.main.mediaurlbase/d' {} \;

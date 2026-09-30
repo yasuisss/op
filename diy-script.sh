@@ -52,7 +52,6 @@ git clone https://github.com/sbwml/packages_lang_golang -b 27.x feeds/packages/l
 git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
 git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
 git clone https://github.com/sbwml/openwrt_helloworld package/helloworld
-git clone https://github.com/QiuSimons/luci-app-daed package/dae
 
 # Themes
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon

@@ -116,6 +116,12 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+    - name: Patch daed feeds (Remove hardcoded vmlinux-btf dependency)
+      run: |
+          # 查找并移除 daed 和 luci-app-daede 源码 Makefile 里的 +vmlinux-btf 依赖
+          find feeds/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
+          find package/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
+          
     - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files

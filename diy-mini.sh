@@ -26,7 +26,7 @@ rm -rf feeds/luci/applications/luci-app-serverchan
 rm -rf feeds/luci/applications/luci-app-smartdns
 # rm -rf feeds/packages/helloworld
 rm -rf feeds/packages/lang/golang
-rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
+rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls,smartdns}
 rm -rf feeds/luci/applications/luci-app-passwall
 rm -rf feeds/packages/net/daed
 rm -rf feeds/luci/applications/luci-app-daed
@@ -85,10 +85,6 @@ sed -i '/cat >>.\/etc\/crontabs\/root/,/EOF/d' package/luci-app-amlogic/root/usr
 sed -i '/cat >>.\/etc\/crontabs\/root/,/EOF/d' package/luci-app-amlogic/root/usr/sbin/openwrt-update-kvm
 # sed -i "s|kernel_path.*|kernel_path 'https://github.com/ophub/kernel'|g" package/luci-app-amlogic/root/etc/config/amlogic
 sed -i "s|ARMv8|ARMv8_lean|g" package/luci-app-amlogic/root/etc/config/amlogic
-
-# SmartDNS
-git clone --depth=1 -b master https://github.com/pymumu/luci-app-smartdns package/luci-app-smartdns
-git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
 
 # msd_lite
 git clone --depth=1 https://github.com/ximiTech/luci-app-msd_lite package/luci-app-msd_lite

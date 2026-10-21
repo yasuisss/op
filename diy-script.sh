@@ -62,6 +62,10 @@ rm -rf package/luci-app-daede
 git clone --depth=1 https://github.com/kenzok8/openwrt-daede.git package/luci-app-daede
 # git clone https://github.com/QiuSimons/luci-app-dae package/dae
 
+# 移除 daede / daed 对 vmlinux-btf 的虚拟包依赖检查
+find package/ feeds/ -name "Makefile" | grep -E "daed|daede" | xargs sed -i 's/+vmlinux-btf//g'
+find package/ feeds/ -name "Makefile" | grep -E "daed|daede" | xargs sed -i 's/vmlinux-btf//g'
+
 # Themes
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config

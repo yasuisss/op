@@ -57,8 +57,8 @@ jobs:
           sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
           sudo rm -rf ~/{.cargo,.dotnet,.rustup}
           sudo timedatectl set-timezone "${TZ}"
-          # sudo -E apt install scdoc
-          sudo -E apt-get install -y dwarves npm
+          sudo -E apt install scdoc
+          sudo -E apt-get install -y dwarves npm clang llvm lld libbpf-dev
           sudo -E npm install -g pnpm
 
     - name: Combine Disks

@@ -165,6 +165,20 @@ sed -i 's|admin\\|admin\\/services\\|g' feeds/luci/applications/luci-app-dockerm
 
 # uhttpd关掉HTTPS
 sed -i 's/^\s*list listen_https\s*/# &/g' ./package/network/services/uhttpd/files/uhttpd.config
+cat >> package/kernel/linux/modules/netsupport.mk << 'EOF'
 
+define KernelPackage/netkit
+  SUBMENU:=$(NETWORK_SUPPORT_MENU)
+  TITLE:=Netkit BPF device support
+  KCONFIG:=CONFIG_NETKIT=y
+  FILES:=$(LINUX_DIR)/drivers/net/netkit.ko
+  AUTOLOAD:=$(call AutoLoad,30,netkit)
+endef
+
+$(eval $(call KernelPackage,netkit))
+EOF
+# 在 .config 中开启该模块
+echo "CONFIG_PACKAGE_kmod-netkit=y" >> .config
+sed -i 's/+kmod-fs-nfs-common-rpcsec//g' package/kernel/linux/modules/fs.mk
 ./scripts/feeds update -a
 ./scripts/feeds install -a

@@ -114,31 +114,6 @@ sed -i 's/TARGET_rockchip/TARGET_rockchip\|\|TARGET_armsr/g' package/lean/autoco
 # 修改本地时间格式
 sed -i 's/os.date()/os.date("%a %Y-%m-%d %H:%M:%S")/g' package/lean/autocore/files/*/index.htm
 
-# 修改版本为编译日期
-# date_version=$(date +"%y.%m.%d")
-# orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
-# sed -i "s/${orig_version}/R${date_version} by yasui/g" package/lean/default-settings/files/zzz-default-settings
-# -------------------------------------------------------------
-# 精准修改 autocore 中的固件版本（首页展示的真正源头）
-# -------------------------------------------------------------
-date_version=$(date +"%y.%m.%d")
-
-# 1. 直接将 autocore 脚本中写死的版本号与拼接逻辑换成你的目标格式
-find package/lean/autocore/ -type f \( -name "autocore*" -o -name "index.htm" -o -name "*.lua" -o -name "*.json" \) 2>/dev/null | while read -r file; do
-    sed -i "s/R26\.[0-9]*\.[0-9]*/R${date_version} by yasui/g" "$file"
-    sed -i 's/\$(cat \/etc\/openwrt_version)//g' "$file"
-    sed -i 's/`cat \/etc\/openwrt_version`//g' "$file"
-done
-
-# 2. 修改系统底层的 /etc/openwrt_version
-# 既然系统总喜欢读这个文件，直接在编译期将它写入为空（彻底杜绝 r8141-xxxxxxx）
-mkdir -p package/base-files/files/etc
-echo "" > package/base-files/files/etc/openwrt_version
-
-# 3. 同步修正 zzz-default-settings
-sed -i "s/R26\.[0-9]*\.[0-9]*/R${date_version} by yasui/g" package/lean/default-settings/files/zzz-default-settings 2>/dev/null || true
-sed -i 's/\$(cat \/etc\/openwrt_version)//g' package/lean/default-settings/files/zzz-default-settings 2>/dev/null || true
-
 # 取消主题默认设置
 find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/set luci.main.mediaurlbase/d' {} \;
 
@@ -170,5 +145,5 @@ EOF
 echo "CONFIG_PACKAGE_kmod-netkit=y" >> .config
 sed -i 's/+kmod-fs-nfs-common-rpcsec//g' package/kernel/linux/modules/fs.mk
 
-./scripts/feeds update -a
-./scripts/feeds install -a
+#./scripts/feeds update -a
+#./scripts/feeds install -a

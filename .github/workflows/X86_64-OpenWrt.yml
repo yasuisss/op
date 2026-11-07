@@ -89,9 +89,19 @@ jobs:
         COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
         echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
 
+    - name: Set Kernel Version to 7.3
+      run: |
+        cd $OPENWRT_PATH
+        # 修改 x86 target 的默认内核版本为 7.3
+        sed -i 's/^KERNEL_PATCHVER:=.*/KERNEL_PATCHVER:=7.3/' target/linux/x86/Makefile
+        echo "Current KERNEL_PATCHVER in target/linux/x86/Makefile:"
+        grep '^KERNEL_PATCHVER:=' target/linux/x86/Makefile
+
     - name: Generate Variables
       run: |
+        # 复制 config 并替换旧内核定义
         cp $CONFIG_FILE $OPENWRT_PATH/.config
+        sed -i 's/CONFIG_LINUX_6_18=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
@@ -106,7 +116,8 @@ jobs:
       uses: HiGarfield/cachewrtbuild@main
       with:
         ccache: false
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+        # 在缓存键中加入 7.3 标记，避免命中之前 6.18 内核生成的旧工具链缓存导致兼容报错
+        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-k7.3
         prefix: ${{ env.OPENWRT_PATH }}
 
     - name: Install Feeds
@@ -118,14 +129,15 @@ jobs:
 
     - name: Patch daed feeds (Remove hardcoded vmlinux-btf dependency)
       run: |
-          # 查找并移除 daed 和 luci-app-daede 源码 Makefile 里的 +vmlinux-btf 依赖
-          find feeds/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
-          find package/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
-          
+        find feeds/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
+        find package/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
+
     - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRT_PATH/.config
+        # 再次确认自定义 config 覆盖，并保证无 6.18 残留
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE $OPENWRT_PATH/.config
+        sed -i 's/CONFIG_LINUX_6_18=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
         chmod +x $GITHUB_WORKSPACE/scripts/*.sh
         chmod +x $DIY_SCRIPT
         cd $OPENWRT_PATH
@@ -133,12 +145,20 @@ jobs:
         $GITHUB_WORKSPACE/scripts/preset-clash-core.sh $CLASH_KERNEL
         $GITHUB_WORKSPACE/scripts/preset-terminal-tools.sh
         $GITHUB_WORKSPACE/scripts/preset-adguard-core.sh $CLASH_KERNEL
-        
 
-    - name: Download DL Package
+    - name: Download DL Package & Verify Kernel
       run: |
         cd $OPENWRT_PATH
         make defconfig
+        
+        # 校验 7.3 内核是否成功应用
+        echo "=== Kernel Configuration Result ==="
+        grep -E "CONFIG_LINUX_|CONFIG_TESTING_KERNEL" .config || true
+        if ! grep -q "CONFIG_LINUX_7_3=y" .config; then
+          echo "::error::Kernel 7.3 was not applied! Check if source tree supports 7.3."
+          exit 1
+        fi
+
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;

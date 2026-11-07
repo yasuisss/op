@@ -129,6 +129,13 @@ sed -i '/exit 0/i [ -e /sys/module/tcp_bbr3 ] && echo bbr3 > /proc/sys/net/ipv4/
 # 移除克隆仓库中冲突的 mihomo 变体定义
 find package/ feeds/ -name "mihomo-alpha" -exec rm -rf {} + 2>/dev/null || true
 
+sed -i 's/CONFIG_PACKAGE_kmod-cfg80211=y/# CONFIG_PACKAGE_kmod-cfg80211 is not set/' $OPENWRT_PATH/.config
+sed -i 's/CONFIG_PACKAGE_hostapd-common=y/# CONFIG_PACKAGE_hostapd-common is not set/' $OPENWRT_PATH/.config
+sed -i 's/CONFIG_PACKAGE_wpa-cli=y/# CONFIG_PACKAGE_wpa-cli is not set/' $OPENWRT_PATH/.config
+sed -i 's/CONFIG_PACKAGE_iw=y/# CONFIG_PACKAGE_iw is not set/' $OPENWRT_PATH/.config
+sed -i 's/CONFIG_PACKAGE_wireless-tools=y/# CONFIG_PACKAGE_wireless-tools is not set/' $OPENWRT_PATH/.config
+sed -i 's/CONFIG_PACKAGE_wpad-openssl=y/# CONFIG_PACKAGE_wpad-openssl is not set/' $OPENWRT_PATH/.config
+
 # -------------------------------------------------------------------
 # 移除旧版损坏的 xtables-addons 并通过 sparse-clone 快速拉取最新版
 # -------------------------------------------------------------------

@@ -138,6 +138,11 @@ jobs:
         # 再次确认自定义 config 覆盖，并保证无 6.18 残留
         [ -e $CONFIG_FILE ] && cp $CONFIG_FILE $OPENWRT_PATH/.config
         sed -i 's/CONFIG_LINUX_6_18=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
+        
+        # 修复 7.3 内核下 kmod-fs-ksmbd 找不到 smb_compress.ko 的问题
+        sed -i '/smb_compress\.ko/d' $OPENWRT_PATH/package/kernel/linux/modules/fs.mk
+        sed -i 's/smb_compress //g' $OPENWRT_PATH/package/kernel/linux/modules/fs.mk
+        
         chmod +x $GITHUB_WORKSPACE/scripts/*.sh
         chmod +x $DIY_SCRIPT
         cd $OPENWRT_PATH

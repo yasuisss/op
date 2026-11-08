@@ -86,6 +86,8 @@ jobs:
         COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
         echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
 
+# ... 上方 Clone Source Code 步骤保持不变 ...
+
     - name: Set Kernel Version to 7.3
       run: |
         cd $OPENWRT_PATH
@@ -124,7 +126,12 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-     - name: Load Custom Configuration
+    - name: Patch daed feeds (Remove hardcoded vmlinux-btf dependency)
+      run: |
+        find feeds/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
+        find package/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
+
+    - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files
         # 再次确认自定义 config 覆盖，并保证无 6.18 残留
@@ -155,6 +162,7 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
+    # ... 下方 Compile Firmware 保持不变 ...
     - name: Compile Firmware
       id: compile
       run: |

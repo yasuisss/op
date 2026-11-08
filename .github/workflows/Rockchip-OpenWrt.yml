@@ -86,21 +86,25 @@ jobs:
         COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
         echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
 
-# ... 上方 Clone Source Code 步骤保持不变 ...
-
     - name: Set Kernel Version to 7.3
       run: |
         cd $OPENWRT_PATH
-        # 修改 x86 target 的默认内核版本为 7.3
-        sed -i 's/^KERNEL_PATCHVER:=.*/KERNEL_PATCHVER:=7.3/' target/linux/x86/Makefile
-        echo "Current KERNEL_PATCHVER in target/linux/x86/Makefile:"
-        grep '^KERNEL_PATCHVER:=' target/linux/x86/Makefile
+        # 修改 rockchip target 的默认内核版本为 7.3
+        sed -i 's/^KERNEL_PATCHVER:=.*/KERNEL_PATCHVER:=7.3/' target/linux/rockchip/Makefile
+        sed -i 's/^KERNEL_TESTING_PATCHVER:=.*/KERNEL_TESTING_PATCHVER:=7.3/' target/linux/rockchip/Makefile
+        echo "Current KERNEL_PATCHVER in target/linux/rockchip/Makefile:"
+        grep -E '^KERNEL_.*PATCHVER:=' target/linux/rockchip/Makefile
 
     - name: Generate Variables
       run: |
-        # 复制 config 并替换旧内核定义
+        # 复制 config 并合并 extra.config（如果有）
         cp $CONFIG_FILE $OPENWRT_PATH/.config
+        [ -e "$EXTRA_CONFIG" ] && cat $EXTRA_CONFIG >> $OPENWRT_PATH/.config
+        
+        # 清理 6.12 旧内核标记并注入 7.3
+        sed -i 's/CONFIG_LINUX_6_12=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
         sed -i 's/CONFIG_LINUX_6_18=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
+        
         cd $OPENWRT_PATH
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
@@ -134,9 +138,15 @@ jobs:
     - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files
-        # 再次确认自定义 config 覆盖，并保证无 6.18 残留
         [ -e $CONFIG_FILE ] && cp $CONFIG_FILE $OPENWRT_PATH/.config
+        [ -e $EXTRA_CONFIG ] && cat $EXTRA_CONFIG >> $OPENWRT_PATH/.config
+        sed -i 's/CONFIG_LINUX_6_12=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
         sed -i 's/CONFIG_LINUX_6_18=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
+        
+        # 针对 7.3 内核移除 ksmbd 的 smb_compress.ko 打包
+        sed -i '/smb_compress\.ko/d' $OPENWRT_PATH/package/kernel/linux/modules/fs.mk 2>/dev/null || true
+        sed -i 's/smb_compress //g' $OPENWRT_PATH/package/kernel/linux/modules/fs.mk 2>/dev/null || true
+
         chmod +x $GITHUB_WORKSPACE/scripts/*.sh
         chmod +x $DIY_SCRIPT
         cd $OPENWRT_PATH

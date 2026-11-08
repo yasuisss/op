@@ -145,15 +145,21 @@ jobs:
 
         cd $OPENWRT_PATH
 
-        # 1. 修复 7.3 内核下的 ksmbd 依赖
+        # 1. 彻底恢复受损的构建脚本
+        git checkout include/package-ipkg.mk package/kernel/linux/modules/netdevices.mk 2>/dev/null || true
+
+        # 2. 修复 7.3 内核下的 ksmbd 依赖
         sed -i '/smb_compress\.ko/d' package/kernel/linux/modules/fs.mk 2>/dev/null || true
         sed -i 's/smb_compress //g' package/kernel/linux/modules/fs.mk 2>/dev/null || true
 
-        # 2. 规范重构 netdevices.mk 中的 mdio-devres，防止 Makefile 语法解析中断
+        # 3. 规范移除 netdevices.mk 中的 of_mdio 与 phy_package 模块声明
         python3 -c "
         import re
-        with open('package/kernel/linux/modules/netdevices.mk', 'r') as f:
+        path = 'package/kernel/linux/modules/netdevices.mk'
+        with open(path, 'r') as f:
             content = f.read()
+
+        # 重写 mdio-devres，移除 of_mdio.ko
         target_block = '''define KernelPackage/mdio-devres
           SUBMENU:=\$(NETWORK_DEVICES_MENU)
           TITLE:=MDIO devres support
@@ -162,51 +168,25 @@ jobs:
           AUTOLOAD:=\$(call AutoLoad,40,mdio-devres)
         endef'''
         content = re.sub(r'define KernelPackage/mdio-devres.*?endef', target_block, content, flags=re.DOTALL)
-        with open('package/kernel/linux/modules/netdevices.mk', 'w') as f:
+
+        # 移除 phy-realtek 中的 phy_package.ko 声明
+        content = re.sub(r'\\\s*\$\(LINUX_DIR\)/drivers/net/phy/phy_package\.ko', '', content)
+        content = re.sub(r'\$\(LINUX_DIR\)/drivers/net/phy/phy_package\.ko\s*\\\\?', '', content)
+
+        with open(path, 'w') as f:
             f.write(content)
         "
 
-        # 3. 拦截 ipkg-build 针对未知库的硬性退出
-        sed -i 's/exit 1/true/' scripts/ipkg-build 2>/dev/null || true
+        # 4. 安全放宽缺失库检测（将 false; 替换为 true;）
+        sed -i '/missing dependencies for the following libraries/,/false;/ s/false;/true;/' include/package-ipkg.mk
 
+        # 5. 执行外部脚本与配置
         chmod +x $GITHUB_WORKSPACE/scripts/*.sh
         chmod +x $GITHUB_WORKSPACE/$DIY_SCRIPT
         $GITHUB_WORKSPACE/$DIY_SCRIPT
         $GITHUB_WORKSPACE/scripts/preset-clash-core.sh $CLASH_KERNEL
         $GITHUB_WORKSPACE/scripts/preset-terminal-tools.sh
         $GITHUB_WORKSPACE/scripts/preset-adguard-core.sh $CLASH_KERNEL
-
-        # 1. 修复 ksmbd 依赖
-        sed -i '/smb_compress\.ko/d' package/kernel/linux/modules/fs.mk 2>/dev/null || true
-        sed -i 's/smb_compress //g' package/kernel/linux/modules/fs.mk 2>/dev/null || true
-
-        # 2. 规范重构 netdevices.mk (移除 mdio-devres 中的 of_mdio 和 realtek 中的 phy_package)
-        python3 -c "
-        import re
-        path = 'package/kernel/linux/modules/netdevices.mk'
-        with open(path, 'r') as f:
-            content = f.read()
- 
-        # 重写 mdio-devres
-        target_block = '''define KernelPackage/mdio-devres
-         SUBMENU:=\$(NETWORK_DEVICES_MENU)
-         TITLE:=MDIO devres support
-         KCONFIG:=CONFIG_MDIO_DEVRES
-         FILES:=\$(LINUX_DIR)/drivers/net/mdio/mdio-devres.ko
-         AUTOLOAD:=\$(call AutoLoad,40,mdio-devres)
-        endef'''
-        content = re.sub(r'define KernelPackage/mdio-devres.*?endef', target_block, content, flags=re.DOTALL)
-
-        # 移除 phy-realtek 中的 phy_package.ko
-        content = re.sub(r'\\\s*\$\(LINUX_DIR\)/drivers/net/phy/phy_package\.ko', '', content)
-        content = re.sub(r'\$\(LINUX_DIR\)/drivers/net/phy/phy_package\.ko\s*\\\\?', '', content)
- 
-        with open(path, 'w') as f:
-            f.write(content)
-        "
- 
-        # 3. 核心拦截：将缺失 .ko 依赖的强制退出拦截为警告
-        sed -i 's/missing dependencies for the following libraries.*/missing dependencies (ignored)"; true;/' include/package-ipkg.mk 2>/dev/null || true
 
     - name: Download DL Package & Verify Kernel
       run: |

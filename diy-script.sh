@@ -183,6 +183,10 @@ with open(path, 'w') as f:
 # 针对缺失 .ko 依赖的问题，仅精准放宽 ipkg 报错检测（不破坏全局 Makefile 结构）
 sed -i 's/missing dependencies for the following libraries/missing dependencies (ignored)/g' scripts/ipkg-build 2>/dev/null || true
 
+# 1. 移除 uboot 编译时强制指定外部内核 DTC 的参数，让 U-Boot 使用自带的 scripts/dtc/dtc
+sed -i 's/DTC=.*//g' package/boot/uboot-rockchip/Makefile 2>/dev/null || true
+sed -i 's/DTC=".*"//g' include/u-boot.mk 2>/dev/null || true
+
 # -------------------------------------------------------------------
 # 移除旧版损坏的 xtables-addons 并通过 sparse-clone 快速拉取最新版
 # -------------------------------------------------------------------

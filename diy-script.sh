@@ -212,5 +212,15 @@ EOF
 echo "CONFIG_PACKAGE_kmod-netkit=y" >> .config
 sed -i 's/+kmod-fs-nfs-common-rpcsec//g' package/kernel/linux/modules/fs.mk
 
+# 修复 aarch64 在 7.3 内核头文件下编译 libbpf 报 unknown type name '__u128'
+if [ -f "package/libs/libbpf/Makefile" ]; then
+  # 方法 A：通过 CFLAGS 直接全局传入 __u128 类型定义
+  sed -i '/TARGET_CFLAGS +=/a TARGET_CFLAGS += -D__u128=__uint128_t' package/libs/libbpf/Makefile
+  # 若 Makefile 中原本没有 TARGET_CFLAGS +=，则追加在 include $(INCLUDE_DIR)/package.mk 之后
+  if ! grep -q "D__u128=__uint128_t" package/libs/libbpf/Makefile; then
+    sed -i '/include.*package\.mk/a TARGET_CFLAGS += -D__u128=__uint128_t' package/libs/libbpf/Makefile
+  fi
+fi
+
 #./scripts/feeds update -a
 #./scripts/feeds install -a

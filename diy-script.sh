@@ -222,5 +222,14 @@ if [ -f "package/libs/libbpf/Makefile" ]; then
   fi
 fi
 
+# 修复 gpio-button-hotplug 在 Linux 7.3 下找不到 linux/of_gpio.h 的问题
+GPIO_BTN_SRC="package/kernel/gpio-button-hotplug/src/gpio-button-hotplug.c"
+if [ -f "$GPIO_BTN_SRC" ]; then
+  sed -i 's|#include <linux/of_gpio.h>|#include <linux/gpio/consumer.h>\n#include <linux/of.h>|g' "$GPIO_BTN_SRC"
+fi
+# 若替换头文件后仍因旧版 GPIO API 报错，可强制关闭 gpio-button-hotplug
+sed -i 's/CONFIG_PACKAGE_kmod-gpio-button-hotplug=y/# CONFIG_PACKAGE_kmod-gpio-button-hotplug is not set/g' .config
+
+
 #./scripts/feeds update -a
 #./scripts/feeds install -a

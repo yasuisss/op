@@ -3,7 +3,7 @@ name: Rockchip OpenWrt
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 15 * * *
+    - cron: 0 11 * * *
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
@@ -86,25 +86,9 @@ jobs:
         COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
         echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
 
-    - name: Set Kernel Version to 7.3
-      run: |
-        cd $OPENWRT_PATH
-        # 修改 rockchip target 的默认内核版本为 7.3
-        sed -i 's/^KERNEL_PATCHVER:=.*/KERNEL_PATCHVER:=7.3/' target/linux/rockchip/Makefile
-        sed -i 's/^KERNEL_TESTING_PATCHVER:=.*/KERNEL_TESTING_PATCHVER:=7.3/' target/linux/rockchip/Makefile
-        echo "Current KERNEL_PATCHVER in target/linux/rockchip/Makefile:"
-        grep -E '^KERNEL_.*PATCHVER:=' target/linux/rockchip/Makefile
-
     - name: Generate Variables
       run: |
-        # 复制 config 并合并 extra.config（如果有）
         cp $CONFIG_FILE $OPENWRT_PATH/.config
-        [ -e "$EXTRA_CONFIG" ] && cat $EXTRA_CONFIG >> $OPENWRT_PATH/.config
-        
-        # 清理 6.12 旧内核标记并注入 7.3
-        sed -i 's/CONFIG_LINUX_6_12=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
-        sed -i 's/CONFIG_LINUX_6_18=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
-        
         cd $OPENWRT_PATH
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
@@ -119,93 +103,35 @@ jobs:
       uses: HiGarfield/cachewrtbuild@main
       with:
         ccache: false
-        # 在缓存键中加入 7.3 标记，避免命中之前 6.18 内核生成的旧工具链缓存导致兼容报错
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-k7.3
+        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
         prefix: ${{ env.OPENWRT_PATH }}
 
     - name: Install Feeds
       run: |
         cd $OPENWRT_PATH
-        ./scripts/feeds clean
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-
-    - name: Patch daed feeds (Remove hardcoded vmlinux-btf dependency)
-      run: |
-        find feeds/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
-        find package/ -type f -name "Makefile" | xargs sed -i 's/+vmlinux-btf//g' 2>/dev/null || true
 
     - name: Load Custom Configuration
       run: |
         [ -e files ] && mv files $OPENWRT_PATH/files
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE $OPENWRT_PATH/.config
-        [ -e $EXTRA_CONFIG ] && cat $EXTRA_CONFIG >> $OPENWRT_PATH/.config
-        sed -i 's/CONFIG_LINUX_6_12=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
-        sed -i 's/CONFIG_LINUX_6_18=y/CONFIG_LINUX_7_3=y/' $OPENWRT_PATH/.config
-
-        cd $OPENWRT_PATH
-
-        # 1. 彻底恢复受损的构建脚本
-        git checkout include/package-ipkg.mk package/kernel/linux/modules/netdevices.mk 2>/dev/null || true
-
-        # 2. 修复 7.3 内核下的 ksmbd 依赖
-        sed -i '/smb_compress\.ko/d' package/kernel/linux/modules/fs.mk 2>/dev/null || true
-        sed -i 's/smb_compress //g' package/kernel/linux/modules/fs.mk 2>/dev/null || true
-
-        # 3. 规范移除 netdevices.mk 中的 of_mdio 与 phy_package 模块声明
-        python3 -c "
-        import re
-        path = 'package/kernel/linux/modules/netdevices.mk'
-        with open(path, 'r') as f:
-            content = f.read()
-
-        # 重写 mdio-devres，移除 of_mdio.ko
-        target_block = '''define KernelPackage/mdio-devres
-          SUBMENU:=\$(NETWORK_DEVICES_MENU)
-          TITLE:=MDIO devres support
-          KCONFIG:=CONFIG_MDIO_DEVRES
-          FILES:=\$(LINUX_DIR)/drivers/net/mdio/mdio-devres.ko
-          AUTOLOAD:=\$(call AutoLoad,40,mdio-devres)
-        endef'''
-        content = re.sub(r'define KernelPackage/mdio-devres.*?endef', target_block, content, flags=re.DOTALL)
-
-        # 移除 phy-realtek 中的 phy_package.ko 声明
-        content = re.sub(r'\\\s*\$\(LINUX_DIR\)/drivers/net/phy/phy_package\.ko', '', content)
-        content = re.sub(r'\$\(LINUX_DIR\)/drivers/net/phy/phy_package\.ko\s*\\\\?', '', content)
-
-        with open(path, 'w') as f:
-            f.write(content)
-        "
-
-        # 4. 安全放宽缺失库检测（将 false; 替换为 true;）
-        sed -i '/missing dependencies for the following libraries/,/false;/ s/false;/true;/' include/package-ipkg.mk
-
-        # 5. 执行外部脚本与配置
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRT_PATH/.config
+        cat $EXTRA_CONFIG >> $OPENWRT_PATH/.config
         chmod +x $GITHUB_WORKSPACE/scripts/*.sh
-        chmod +x $GITHUB_WORKSPACE/$DIY_SCRIPT
+        chmod +x $DIY_SCRIPT
+        cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_SCRIPT
-        $GITHUB_WORKSPACE/scripts/preset-clash-core.sh $CLASH_KERNEL
         $GITHUB_WORKSPACE/scripts/preset-terminal-tools.sh
         $GITHUB_WORKSPACE/scripts/preset-adguard-core.sh $CLASH_KERNEL
 
-    - name: Download DL Package & Verify Kernel
+    - name: Download DL Package
       run: |
         cd $OPENWRT_PATH
         make defconfig
-        
-        # 校验 7.3 内核是否成功应用
-        echo "=== Kernel Configuration Result ==="
-        grep -E "CONFIG_LINUX_|CONFIG_TESTING_KERNEL" .config || true
-        if ! grep -q "CONFIG_LINUX_7_3=y" .config; then
-          echo "::error::Kernel 7.3 was not applied! Check if source tree supports 7.3."
-          exit 1
-        fi
-
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-    # ... 下方 Compile Firmware 保持不变 ...
     - name: Compile Firmware
       id: compile
       run: |

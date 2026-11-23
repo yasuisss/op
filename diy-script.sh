@@ -3,6 +3,9 @@
 # 修改默认IP
 sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_generate
 
+# 更改默认 Shell 为 zsh
+# sed -i 's/\/bin\/ash/\/usr\/bin\/zsh/g' package/base-files/files/etc/passwd
+
 # TTYD 免登录
 sed -i 's/\/bin\/login/\/bin\/login -f root/' feeds/packages/utils/ttyd/files/ttyd.config
 
@@ -21,7 +24,7 @@ rm -rf feeds/luci/applications/luci-app-mosdns
 rm -rf feeds/luci/applications/luci-app-netdata
 rm -rf feeds/luci/applications/luci-app-serverchan
 rm -rf feeds/luci/applications/luci-app-smartdns
-rm -rf feeds/package/helloworld
+# rm -rf feeds/packages/helloworld
 rm -rf feeds/packages/lang/golang
 rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls,smartdns}
 rm -rf feeds/luci/applications/luci-app-passwall
@@ -33,12 +36,15 @@ rm -rf package/feeds/packages/daed
 rm -rf package/feeds/packages/dae
 rm -rf package/feeds/luci/luci-app-daed
 rm -rf package/feeds/luci/luci-app-dae
+rm -rf package/lean/daed
+rm -rf package/lean/dae
 rm -rf feeds/packages/net/openvswitch
 rm -rf feeds/packages/net/ovsd
 # rm -rf feeds/packages/utils/dockerd
 # rm -rf feeds/packages/utils/docker
 # rm -rf feeds/packages/utils/containerd
 # rm -rf feeds/packages/utils/runc
+# rm -rf feeds/packages/net/ddns-go
 
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {
@@ -51,6 +57,8 @@ function git_sparse_clone() {
 }
 
 # 添加额外插件
+# git clone --depth=1 https://github.com/kongfl888/luci-app-adguardhome package/luci-app-adguardhome
+# git clone --depth=1 -b openwrt-18.06 https://github.com/tty228/luci-app-wechatpush package/luci-app-serverchan
 git clone --depth=1 https://github.com/esirplayground/luci-app-poweroff package/luci-app-poweroff
 git clone --depth=1 https://github.com/Jason6111/luci-app-netdata package/luci-app-netdata
 git_sparse_clone main https://github.com/Lienol/openwrt-package luci-app-filebrowser luci-app-ssr-mudb-server
@@ -71,9 +79,22 @@ for config_file in target/linux/rockchip/config-* target/linux/x86/config-*; do
   [ -f "$config_file" ] && echo "CONFIG_NETKIT=y" >> "$config_file"
 done
 
+# 替换为 Vantage 主题
+rm -rf package/luci-theme-vantage
+git clone --depth=1 https://github.com/anothaDev/luci-theme-vantage.git package/luci-theme-vantage
+# 写入配置以自动选中 Vantage 主题及其控制面板、中文包
+cat >> .config <<EOF
+CONFIG_PACKAGE_luci-theme-vantage=y
+CONFIG_PACKAGE_luci-app-vantage=y
+CONFIG_PACKAGE_luci-i18n-vantage-zh-cn=y
+CONFIG_PACKAGE_luci-i18n-vantage-theme-zh-cn=y
+EOF
+
 # Themes
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
+# git clone --depth=1 https://github.com/sbwml/luci-theme-argon.git package/luci-theme-argon
+# git clone --depth=1 https://github.com/sbwml/luci-app-argon-config.git package/luci-app-argon-config
 
 # 更改 Argon 主题背景
 #cp -f $GITHUB_WORKSPACE/images/bg1.jpg package/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
@@ -88,9 +109,16 @@ cp -f $GITHUB_WORKSPACE/images/bg1.jpg files/www/luci-static/argon/background/bg
 git clone --depth=1 https://github.com/ximiTech/luci-app-msd_lite package/luci-app-msd_lite
 git clone --depth=1 https://github.com/ximiTech/msd_lite package/msd_lite
 
-# MosDNS (仅保留单个 v5 稳定库)
-git clone --depth=1 https://github.com/sbwml/luci-app-mosdns -b v5 package/luci-app-mosdns
-git clone --depth=1 https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
+# MosDNS
+git clone --depth=1 https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
+# git clone --depth=1 https://github.com/sbwml/luci-app-mosdns package/luci-app-mosdns
+# git clone --depth=1 https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
+
+# Alist
+# rm -rf feeds/packages/net/alist
+# rm -rf feeds/luci/applications/luci-app-alist
+# git clone --depth=1 https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
+# git clone --depth=1 https://github.com/sbwml/luci-app-alist package/alist
 
 # DDNS.to
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
@@ -106,6 +134,9 @@ sed -i '$i uci set nlbwmon.@nlbwmon[0].refresh_interval=2s' package/lean/default
 sed -i '$i uci commit nlbwmon' package/lean/default-settings/files/zzz-default-settings
 chmod 755 package/luci-app-onliner/root/usr/share/onliner/setnlbw.sh
 
+# 友善uboot
+# sed -i '/^UBOOT_TARGETS := rk3528-evb rk3588-evb/s/^/#/' package/boot/uboot-rk35xx/Makefile
+
 # x86 型号只显示 CPU 型号
 sed -i 's/${g}.*/${a}${b}${c}${d}${e}${f}${hydrid}/g' package/lean/autocore/files/x86/autocore
 
@@ -120,72 +151,44 @@ date_version=$(date +"%y.%m.%d")
 sed -i "/DISTRIB_REVISION/c\sed -i \"s/DISTRIB_REVISION='.*'/DISTRIB_REVISION='R${date_version} by yasui  '/g\" /etc/openwrt_release" package/lean/default-settings/files/zzz-default-settings
 sed -i "/DISTRIB_DESCRIPTION/c\sed -i \"s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='LEDE '/g\" /etc/openwrt_release" package/lean/default-settings/files/zzz-default-settings
 
-# 取消主题默认设置
+# 修复 hostapd 报错
+# cp -f $GITHUB_WORKSPACE/script/011-fix-mbo-modules-build.patch package/network/services/hostapd/patches/011-fix-mbo-modules-build.patch
+
+# 修复 armv8 设备 xfsprogs 报错
+# sed -i 's/TARGET_CFLAGS.*/TARGET_CFLAGS += -DHAVE_MAP_SYNC -D_LARGEFILE64_SOURCE/g' feeds/packages/utils/xfsprogs/Makefile
+
+# fstools
+# rm -rf package/system/fstools
+# git clone https://github.com/sbwml/package_system_fstools -b openwrt-24.10 package/system/fstools
+
+# util-linux
+# rm -rf package/utils/util-linux
+# git clone https://github.com/sbwml/package_utils_util-linux -b openwrt-24.10 package/utils/util-linux
+
+# 修改 Makefile
+# find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/..\/..\/luci.mk/$(TOPDIR)\/feeds\/luci\/luci.mk/g' {}
+# find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/..\/..\/lang\/golang\/golang-package.mk/$(TOPDIR)\/feeds\/packages\/lang\/golang\/golang-package.mk/g' {}
+# find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/PKG_SOURCE_URL:=@GHREPO/PKG_SOURCE_URL:=https:\/\/github.com/g' {}
+# find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/PKG_SOURCE_URL:=@GHCODELOAD/PKG_SOURCE_URL:=https:\/\/codeload.github.com/g' {}
+
+# 取消所有主题自带的默认主题抢占（防止 argon 抢占）
 find package/luci-theme-*/* -type f -name '*luci-theme-*' -print -exec sed -i '/set luci.main.mediaurlbase/d' {} \;
+
+# 修改 LuCI 默认依赖主题为 vantage
+sed -i 's/luci-theme-bootstrap/luci-theme-vantage/g' feeds/luci/collections/luci/Makefile
+sed -i 's/luci-theme-bootstrap/luci-theme-vantage/g' feeds/luci/collections/luci-light/Makefile 2>/dev/null || true
+
+# 清理 zzz-default-settings 中原有的主题设置，并在最后强制指定默认主题为 vantage
+sed -i '/luci.main.mediaurlbase/d' package/lean/default-settings/files/zzz-default-settings
+sed -i '/exit 0/i uci set luci.main.mediaurlbase="/luci-static/vantage"' package/lean/default-settings/files/zzz-default-settings
+sed -i '/exit 0/i uci commit luci' package/lean/default-settings/files/zzz-default-settings
+# sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
 # 测试开启bbr3
 sed -i '/exit 0/i [ -e /sys/module/tcp_bbr3 ] && echo bbr3 > /proc/sys/net/ipv4/tcp_congestion_control' package/base-files/files/etc/rc.local
 
 # 移除克隆仓库中冲突的 mihomo 变体定义
 find package/ feeds/ -name "mihomo-alpha" -exec rm -rf {} + 2>/dev/null || true
-
-# 1. 补齐 mac_pton 所需的 linux/etherdevice.h 头文件
-sed -i '1i #include <linux/etherdevice.h>' $OPENWRT_PATH/package/kernel/mac80211/patches/subsys/*.patch 2>/dev/null || true
-
-# 2. 如果使用临时 sed 修补源码（在 feeds/编译前释放 patch 或直接注入 sed）：
-# 可以直接给 package/kernel/mac80211 添加一个本地补丁文件：
-mkdir -p $OPENWRT_PATH/package/kernel/mac80211/patches/build
-cat << 'EOF' > $OPENWRT_PATH/package/kernel/mac80211/patches/build/999-fix-kernel-7-compat.patch
---- a/net/wireless/sysfs.c
-+++ b/net/wireless/sysfs.c
-@@ -10,6 +10,7 @@
- #include <linux/netdevice.h>
- #include <linux/nl80211.h>
- #include <linux/rtnetlink.h>
-+#include <linux/etherdevice.h>
- #include <net/genetlink.h>
- #include <net/net_namespace.h>
- 
-@@ -176,7 +177,11 @@ static void wiphy_dev_release(struct dev
- 	kfree(rdev);
- }
- 
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0)
-+static const struct ns_common *wiphy_namespace(const struct device *d)
-+#else
- static const void *wiphy_namespace(const struct device *d)
-+#endif
- {
- 	struct wiphy *wiphy = dev_to_wiphy(d);
- 
-EOF
-
-# 使用 Python 精确重构 mdio-devres 定义，杜绝空行、悬空反斜杠及 Makefile 语法解析错误
-python3 -c "
-import re
-path = 'package/kernel/linux/modules/netdevices.mk'
-with open(path, 'r') as f:
-    content = f.read()
-
-target_block = '''define KernelPackage/mdio-devres
-  SUBMENU:=\$(NETWORK_DEVICES_MENU)
-  TITLE:=MDIO devres support
-  KCONFIG:=CONFIG_MDIO_DEVRES
-  FILES:=\$(LINUX_DIR)/drivers/net/mdio/mdio-devres.ko
-  AUTOLOAD:=\$(call AutoLoad,40,mdio-devres)
-endef'''
-
-content = re.sub(r'define KernelPackage/mdio-devres.*?endef', target_block, content, flags=re.DOTALL)
-with open(path, 'w') as f:
-    f.write(content)
-"
-
-# 针对缺失 .ko 依赖的问题，仅精准放宽 ipkg 报错检测（不破坏全局 Makefile 结构）
-sed -i 's/missing dependencies for the following libraries/missing dependencies (ignored)/g' scripts/ipkg-build 2>/dev/null || true
-
-# 1. 移除 uboot 编译时强制指定外部内核 DTC 的参数，让 U-Boot 使用自带的 scripts/dtc/dtc
-sed -i 's/DTC=.*//g' package/boot/uboot-rockchip/Makefile 2>/dev/null || true
-sed -i 's/DTC=".*"//g' include/u-boot.mk 2>/dev/null || true
 
 # -------------------------------------------------------------------
 # 移除旧版损坏的 xtables-addons 并通过 sparse-clone 快速拉取最新版
@@ -196,6 +199,7 @@ sed -i 's/DTC=".*"//g' include/u-boot.mk 2>/dev/null || true
 # cd - >/dev/null
 # mv -f /tmp/owrt-pkgs/net/xtables-addons feeds/packages/net/
 # rm -rf /tmp/owrt-pkgs
+
 cat >> package/kernel/linux/modules/netsupport.mk << 'EOF'
 
 define KernelPackage/netkit
@@ -212,24 +216,12 @@ EOF
 echo "CONFIG_PACKAGE_kmod-netkit=y" >> .config
 sed -i 's/+kmod-fs-nfs-common-rpcsec//g' package/kernel/linux/modules/fs.mk
 
-# 修复 aarch64 在 7.3 内核头文件下编译 libbpf 报 unknown type name '__u128'
-if [ -f "package/libs/libbpf/Makefile" ]; then
-  # 方法 A：通过 CFLAGS 直接全局传入 __u128 类型定义
-  sed -i '/TARGET_CFLAGS +=/a TARGET_CFLAGS += -D__u128=__uint128_t' package/libs/libbpf/Makefile
-  # 若 Makefile 中原本没有 TARGET_CFLAGS +=，则追加在 include $(INCLUDE_DIR)/package.mk 之后
-  if ! grep -q "D__u128=__uint128_t" package/libs/libbpf/Makefile; then
-    sed -i '/include.*package\.mk/a TARGET_CFLAGS += -D__u128=__uint128_t' package/libs/libbpf/Makefile
-  fi
-fi
+# 关闭生成 profiles.json 概览信息（对 x86 固件刷机和使用无任何影响）
+# sed -i '/CONFIG_JSON_OVERVIEW_IMAGE_INFO/d' .config
+# echo "# CONFIG_JSON_OVERVIEW_IMAGE_INFO is not set" >> .config
 
-# 修复 gpio-button-hotplug 在 Linux 7.3 下找不到 linux/of_gpio.h 的问题
-GPIO_BTN_SRC="package/kernel/gpio-button-hotplug/src/gpio-button-hotplug.c"
-if [ -f "$GPIO_BTN_SRC" ]; then
-  sed -i 's|#include <linux/of_gpio.h>|#include <linux/gpio/consumer.h>\n#include <linux/of.h>|g' "$GPIO_BTN_SRC"
-fi
-# 若替换头文件后仍因旧版 GPIO API 报错，可强制关闭 gpio-button-hotplug
-sed -i 's/CONFIG_PACKAGE_kmod-gpio-button-hotplug=y/# CONFIG_PACKAGE_kmod-gpio-button-hotplug is not set/g' .config
+# 双保险：修复 json_overview_image_info.py，强制只取最后 2 行有效输出，忽略前面的警告行
+# sed -i 's/\.splitlines()/\.splitlines()[-2:]/g' scripts/json_overview_image_info.py
 
-
-#./scripts/feeds update -a
-#./scripts/feeds install -a
+rm -rf tmp
+./scripts/feeds install -a
